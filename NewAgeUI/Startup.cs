@@ -27,10 +27,8 @@ namespace NewAgeUI
     public IConfiguration Configuration { get; }
     private readonly string _authDbConnection = "AuthDbConnection";
 
-    // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-      //services.AddControllersWithViews();
       services.AddControllersWithViews(options =>
       {
         var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
@@ -46,7 +44,6 @@ namespace NewAgeUI
         options.AccessDeniedPath = new PathString("/AccessDenied");
         options.LoginPath = new PathString("/Login");
       });
-
       services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql(Configuration.GetConnectionString(_authDbConnection)));
     }
 
