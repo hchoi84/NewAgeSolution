@@ -2,12 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NewAgeUI.Models;
 
 namespace NewAgeUI
 {
@@ -19,11 +25,29 @@ namespace NewAgeUI
     }
 
     public IConfiguration Configuration { get; }
+    private readonly string _authDbConnection = "AuthDbConnection";
 
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-      services.AddControllersWithViews();
+      //services.AddControllersWithViews();
+      services.AddControllersWithViews(options =>
+      {
+        var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+        options.Filters.Add(new AuthorizeFilter(policy));
+      });
+
+      services.AddIdentity<Employee, IdentityRole>()
+        .AddEntityFrameworkStores<NewAgeDbContext>()
+        .AddDefaultTokenProviders();
+
+      services.ConfigureApplicationCookie(options =>
+      {
+        options.AccessDeniedPath = new PathString("/AccessDenied");
+        options.LoginPath = new PathString("/Login");
+      });
+
+      services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql(Configuration.GetConnectionString(_authDbConnection)));
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -44,6 +68,7 @@ namespace NewAgeUI
 
       app.UseRouting();
 
+      app.UseAuthentication();
       app.UseAuthorization();
 
       app.UseEndpoints(endpoints =>
