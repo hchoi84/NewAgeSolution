@@ -16,10 +16,22 @@ namespace NewAgeUI.Controllers
       return View();
     }
 
+    //[HttpPost("/Register")]
+    //public IActionResult Register()
+    //{
+    //  return RedirectToAction("Index", "Home");
+    //}
+
     [HttpGet("/Login")]
     public IActionResult Login()
     {
       return View();
     }
+
+    //[HttpPost("/Login")]
+    //public IActionResult Login()
+    //{
+        // Store full name in sessions with key "FullName"
+    //}
   }
 }
