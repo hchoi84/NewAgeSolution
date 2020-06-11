@@ -5,4 +5,10 @@
     EmailConfirmation,
     PasswordReset
   }
+
+  public enum EmailServer
+  {
+    Gmail,
+    Rackspace
+  }
 }

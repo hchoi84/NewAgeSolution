@@ -1,4 +1,4 @@
-﻿using EmailSenderLibrary.Securities;
+﻿using EmailSenderLibrary.Models;
 using EmailSenderLibrary.Utilities;
 using MimeKit;
 using MailKit.Net.Smtp;
@@ -8,28 +8,33 @@ namespace EmailSenderLibrary
 {
   public static class EmailSender
   {
-    public static void EmailConfirmationToken(string fullName, string email, string tokenLink, EmailType emailType)
+    public static void SendConfirmationToken(EmailSenderModel emailSenderModel, EmailType emailType, string fromName, string toName, string toEmail, string tokenLink)
     {
-      string senderName = "NewAge Admin";
-
-      MailboxAddress from = new MailboxAddress(senderName, EmailSecret.emailAddress);
-      MailboxAddress to = new MailboxAddress(fullName, email);
+      MailboxAddress from = new MailboxAddress(fromName, emailSenderModel.SenderEmail);
+      MailboxAddress to = new MailboxAddress(toName, toEmail);
       BodyBuilder bodyBuilder = new BodyBuilder();
 
-      string emailSubject = GenerateEmail(fullName, tokenLink, emailType, bodyBuilder);
-      
-      SendEmail(emailSubject, from, to, bodyBuilder);
+      string emailSubject = GenerateEmail(toName, tokenLink, emailType, bodyBuilder);
+
+      MimeMessage message = new MimeMessage();
+      message.From.Add(from);
+      message.To.Add(to);
+      message.Subject = emailSubject;
+      message.Body = bodyBuilder.ToMessageBody();
+
+      SendEmail(message, emailSenderModel);
     }
 
-    private static string GenerateEmail(string fullName, string tokenLink, EmailType emailType, BodyBuilder bodyBuilder)
+    private static string GenerateEmail(string toName, string tokenLink, EmailType emailType, BodyBuilder bodyBuilder)
     {
       string websiteName = "NewAge";
       string emailSubject;
+
       if (emailType == EmailType.EmailConfirmation)
       {
         emailSubject = "New Registration Confirmation";
         bodyBuilder.HtmlBody =
-          $"<h1>Hello {fullName} </h1> \n\n" +
+          $"<h1>Hello {toName} </h1> \n\n" +
           $"<p>You've recently registered for { websiteName }</p> \n\n" +
           "<p>Please click below to confirm your email address</p> \n\n" +
           $"<a href='{tokenLink}'><button style='color:#fff; background-color:#007bff; border-color:#007bff;'>Confirm</button></a> \n\n" +
@@ -41,7 +46,7 @@ namespace EmailSenderLibrary
       {
         emailSubject = "Password Reset Request";
         bodyBuilder.HtmlBody =
-          $"<h1>Hello {fullName} </h1> \n\n" +
+          $"<h1>Hello {toName} </h1> \n\n" +
           $"<p>You've recently requested for password reset</p> \n\n" +
           "<p>Please click below to reset your password</p> \n\n" +
           $"<a href='{tokenLink}'><button style='color:#fff; background-color:#007bff; border-color:#007bff;'>Confirm</button></a> \n\n" +
@@ -53,20 +58,17 @@ namespace EmailSenderLibrary
       return emailSubject;
     }
 
-    private static void SendEmail(string emailSubject, MailboxAddress from, MailboxAddress to, BodyBuilder bodyBuilder)
+    private static void SendEmail(MimeMessage message, EmailSenderModel emailSecret)
     {
-      MimeMessage message = new MimeMessage();
-      message.From.Add(from);
-      message.To.Add(to);
-      message.Subject = emailSubject;
-      message.Body = bodyBuilder.ToMessageBody();
-
       using (SmtpClient client = new SmtpClient())
       {
-        client.CheckCertificateRevocation = false;
-        client.SslProtocols = SslProtocols.Tls;
-        client.Connect(EmailSecret.host, EmailSecret.port, MailKit.Security.SecureSocketOptions.SslOnConnect);
-        client.Authenticate(EmailSecret.emailAddress, EmailSecret.apiPassword);
+        if (emailSecret.EmailServer == EmailServer.Rackspace)
+        {
+          client.CheckCertificateRevocation = false;
+          client.SslProtocols = SslProtocols.Tls;
+        }
+        client.Connect(emailSecret.Host, emailSecret.Port, MailKit.Security.SecureSocketOptions.SslOnConnect);
+        client.Authenticate(emailSecret.SenderEmail, emailSecret.SenderPassword);
         client.Send(message);
         client.Disconnect(true);
       }
