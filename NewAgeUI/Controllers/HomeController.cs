@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using EmailSenderLibrary.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;

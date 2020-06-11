@@ -2,19 +2,21 @@
 using MimeKit;
 using MailKit.Net.Smtp;
 using System.Security.Authentication;
+using System;
 
 namespace EmailSenderLibrary
 {
+  // TODO: Should this inherit from IDisposable so that the senderPassword isn't persisting?
   public class EmailSender
   {
-    private readonly EmailServerEnum _emailServer;
+    private readonly EmailSenderServerEnum _emailServer;
     private readonly string _host;
     private readonly int _port;
     private readonly string _senderEmail;
     private readonly string _senderPassword;
     private readonly string _websiteName;
 
-    public EmailSender(EmailServerEnum emailServer, string host, int port, string senderEmail, string senderPassword, string websiteName)
+    public EmailSender(EmailSenderServerEnum emailServer, string host, int port, string senderEmail, string senderPassword, string websiteName)
     {
       _emailServer = emailServer;
       _host = host;
@@ -24,7 +26,7 @@ namespace EmailSenderLibrary
       _websiteName = websiteName;
     }
 
-    public void SendConfirmationToken(EmailTypeEnum emailType, string fromName, string toName, string toEmail, string tokenLink)
+    public (EmailSenderConfirmationEnum, string) SendConfirmationToken(EmailSenderTypeEnum emailType, string fromName, string toName, string toEmail, string tokenLink)
     {
       MailboxAddress from = new MailboxAddress(fromName, _senderEmail);
       MailboxAddress to = new MailboxAddress(toName, toEmail);
@@ -35,15 +37,24 @@ namespace EmailSenderLibrary
       
       GenerateEmail(emailType, toName, tokenLink, message);
 
-      SendEmail(message);
+      try
+      {
+        SendEmail(message);
+      }
+      catch (Exception e)
+      {
+        return (EmailSenderConfirmationEnum.Failed, e.Message);
+      }
+
+      return (EmailSenderConfirmationEnum.Success, "Email sent successfully");
     }
 
-    private void GenerateEmail(EmailTypeEnum emailType, string toName, string tokenLink, MimeMessage message)
+    private void GenerateEmail(EmailSenderTypeEnum emailType, string toName, string tokenLink, MimeMessage message)
     {
       string subject;
       BodyBuilder bodyBuilder = new BodyBuilder();
 
-      if (emailType == EmailTypeEnum.EmailConfirmation)
+      if (emailType == EmailSenderTypeEnum.EmailConfirmation)
       {
         subject = "New Registration Confirmation";
         bodyBuilder.HtmlBody =
@@ -76,15 +87,22 @@ namespace EmailSenderLibrary
     {
       using (SmtpClient client = new SmtpClient())
       {
-        if (_emailServer == EmailServerEnum.Rackspace)
+        if (_emailServer == EmailSenderServerEnum.Rackspace)
         {
           client.CheckCertificateRevocation = false;
           client.SslProtocols = SslProtocols.Tls;
         }
-        client.Connect(_host, _port, MailKit.Security.SecureSocketOptions.SslOnConnect);
-        client.Authenticate(_senderEmail, _senderPassword);
-        client.Send(message);
-        client.Disconnect(true);
+        try
+        {
+          client.Connect(_host, _port, MailKit.Security.SecureSocketOptions.SslOnConnect);
+          client.Authenticate(_senderEmail, _senderPassword);
+          client.Send(message);
+          client.Disconnect(true);
+        }
+        catch (Exception e)
+        {
+          throw new Exception("There was a problem with either connecting or authenticating with the client", e);
+        }
       }
     }
   }
