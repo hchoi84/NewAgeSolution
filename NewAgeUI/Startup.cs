@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +20,6 @@ namespace NewAgeUI
     }
 
     public IConfiguration Configuration { get; }
-    private readonly string _authDbConnection = "AuthDbConnection";
 
     public void ConfigureServices(IServiceCollection services)
     {
@@ -44,7 +38,7 @@ namespace NewAgeUI
         options.AccessDeniedPath = new PathString("/AccessDenied");
         options.LoginPath = new PathString("/Login");
       });
-      services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql(Configuration.GetConnectionString(_authDbConnection)));
+      services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql(Configuration.GetConnectionString("AuthDbConnection")));
 
       services.AddSession();
     }
