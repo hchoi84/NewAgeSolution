@@ -4,11 +4,11 @@ using MimeKit;
 using MailKit.Net.Smtp;
 using System.Security.Authentication;
 
-namespace EmailLibrary
+namespace EmailSenderLibrary
 {
-  public class EmailSender
+  public static class EmailSender
   {
-    public void EmailConfirmationToken(string fullName, string email, string tokenLink, EmailType emailType)
+    public static void EmailConfirmationToken(string fullName, string email, string tokenLink, EmailType emailType)
     {
       string senderName = "NewAge Admin";
 
@@ -21,7 +21,7 @@ namespace EmailLibrary
       SendEmail(emailSubject, from, to, bodyBuilder);
     }
 
-    private string GenerateEmail(string fullName, string tokenLink, EmailType emailType, BodyBuilder bodyBuilder)
+    private static string GenerateEmail(string fullName, string tokenLink, EmailType emailType, BodyBuilder bodyBuilder)
     {
       string websiteName = "NewAge";
       string emailSubject;
@@ -53,7 +53,7 @@ namespace EmailLibrary
       return emailSubject;
     }
 
-    private void SendEmail(string emailSubject, MailboxAddress from, MailboxAddress to, BodyBuilder bodyBuilder)
+    private static void SendEmail(string emailSubject, MailboxAddress from, MailboxAddress to, BodyBuilder bodyBuilder)
     {
       MimeMessage message = new MimeMessage();
       message.From.Add(from);
@@ -63,6 +63,7 @@ namespace EmailLibrary
 
       using (SmtpClient client = new SmtpClient())
       {
+        client.CheckCertificateRevocation = false;
         client.SslProtocols = SslProtocols.Tls;
         client.Connect(EmailSecret.host, EmailSecret.port, MailKit.Security.SecureSocketOptions.SslOnConnect);
         client.Authenticate(EmailSecret.emailAddress, EmailSecret.apiPassword);
