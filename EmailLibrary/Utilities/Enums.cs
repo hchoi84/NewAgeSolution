@@ -1,12 +1,12 @@
 ﻿namespace EmailSenderLibrary.Utilities
 {
-  public enum EmailType
+  public enum EmailTypeEnum
   {
     EmailConfirmation,
     PasswordReset
   }
 
-  public enum EmailServer
+  public enum EmailServerEnum
   {
     Gmail,
     Rackspace

@@ -1,41 +1,54 @@
-﻿using EmailSenderLibrary.Models;
-using EmailSenderLibrary.Utilities;
+﻿using EmailSenderLibrary.Utilities;
 using MimeKit;
 using MailKit.Net.Smtp;
 using System.Security.Authentication;
 
 namespace EmailSenderLibrary
 {
-  public static class EmailSender
+  public class EmailSender
   {
-    public static void SendConfirmationToken(EmailSenderModel emailSenderModel, EmailType emailType, string fromName, string toName, string toEmail, string tokenLink)
-    {
-      MailboxAddress from = new MailboxAddress(fromName, emailSenderModel.SenderEmail);
-      MailboxAddress to = new MailboxAddress(toName, toEmail);
-      BodyBuilder bodyBuilder = new BodyBuilder();
+    private readonly EmailServerEnum _emailServer;
+    private readonly string _host;
+    private readonly int _port;
+    private readonly string _senderEmail;
+    private readonly string _senderPassword;
+    private readonly string _websiteName;
 
-      string emailSubject = GenerateEmail(toName, tokenLink, emailType, bodyBuilder);
+    public EmailSender(EmailServerEnum emailServer, string host, int port, string senderEmail, string senderPassword, string websiteName)
+    {
+      _emailServer = emailServer;
+      _host = host;
+      _port = port;
+      _senderEmail = senderEmail;
+      _senderPassword = senderPassword;
+      _websiteName = websiteName;
+    }
+
+    public void SendConfirmationToken(EmailTypeEnum emailType, string fromName, string toName, string toEmail, string tokenLink)
+    {
+      MailboxAddress from = new MailboxAddress(fromName, _senderEmail);
+      MailboxAddress to = new MailboxAddress(toName, toEmail);
 
       MimeMessage message = new MimeMessage();
       message.From.Add(from);
       message.To.Add(to);
-      message.Subject = emailSubject;
-      message.Body = bodyBuilder.ToMessageBody();
+      
+      GenerateEmail(emailType, toName, tokenLink, message);
 
-      SendEmail(message, emailSenderModel);
+      SendEmail(message);
     }
 
-    private static string GenerateEmail(string toName, string tokenLink, EmailType emailType, BodyBuilder bodyBuilder)
+    private void GenerateEmail(EmailTypeEnum emailType, string toName, string tokenLink, MimeMessage message)
     {
-      string websiteName = "NewAge";
-      string emailSubject;
+      string subject;
+      BodyBuilder bodyBuilder = new BodyBuilder();
 
-      if (emailType == EmailType.EmailConfirmation)
+      if (emailType == EmailTypeEnum.EmailConfirmation)
       {
-        emailSubject = "New Registration Confirmation";
+        subject = "New Registration Confirmation";
         bodyBuilder.HtmlBody =
           $"<h1>Hello {toName} </h1> \n\n" +
-          $"<p>You've recently registered for { websiteName }</p> \n\n" +
+          $"<p>You've recently registered on { _websiteName }</p> \n\n" +
           "<p>Please click below to confirm your email address</p> \n\n" +
           $"<a href='{tokenLink}'><button style='color:#fff; background-color:#007bff; border-color:#007bff;'>Confirm</button></a> \n\n" +
           "<p>If the link doesn't work, you can copy and paste the below URL</p> \n\n" +
@@ -44,7 +57,7 @@ namespace EmailSenderLibrary
       }
       else
       {
-        emailSubject = "Password Reset Request";
+        subject = "Password Reset Request";
         bodyBuilder.HtmlBody =
           $"<h1>Hello {toName} </h1> \n\n" +
           $"<p>You've recently requested for password reset</p> \n\n" +
@@ -55,20 +68,21 @@ namespace EmailSenderLibrary
           "<p>Thank you!</p>";
       }
 
-      return emailSubject;
+      message.Subject = subject;
+      message.Body = bodyBuilder.ToMessageBody();
     }
 
-    private static void SendEmail(MimeMessage message, EmailSenderModel emailSecret)
+    private void SendEmail(MimeMessage message)
     {
       using (SmtpClient client = new SmtpClient())
       {
-        if (emailSecret.EmailServer == EmailServer.Rackspace)
+        if (_emailServer == EmailServerEnum.Rackspace)
         {
           client.CheckCertificateRevocation = false;
           client.SslProtocols = SslProtocols.Tls;
         }
-        client.Connect(emailSecret.Host, emailSecret.Port, MailKit.Security.SecureSocketOptions.SslOnConnect);
-        client.Authenticate(emailSecret.SenderEmail, emailSecret.SenderPassword);
+        client.Connect(_host, _port, MailKit.Security.SecureSocketOptions.SslOnConnect);
+        client.Authenticate(_senderEmail, _senderPassword);
         client.Send(message);
         client.Disconnect(true);
       }
