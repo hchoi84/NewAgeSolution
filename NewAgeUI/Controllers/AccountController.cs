@@ -130,13 +130,9 @@ namespace NewAgeUI.Controllers
       if (signInResult.Succeeded)
       {
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-        {
           return Redirect(returnUrl);
-        }
-        else
-        {
-          return RedirectToAction(nameof(HomeController.Index), nameof(HomeController));
-        }
+        else 
+          return RedirectToAction("Index", "Home");
       }
 
       ModelState.AddModelError(string.Empty, "Invalid login attempt");
