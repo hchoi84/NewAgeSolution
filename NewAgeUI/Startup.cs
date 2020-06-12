@@ -33,13 +33,14 @@ namespace NewAgeUI
         .AddEntityFrameworkStores<NewAgeDbContext>()
         .AddDefaultTokenProviders();
 
-      services.AddScoped<IEmployee, SqlEmployee>();
-
       services.ConfigureApplicationCookie(options =>
       {
         options.AccessDeniedPath = new PathString("/AccessDenied");
         options.LoginPath = new PathString("/Login");
       });
+
+      services.AddScoped<IEmployee, SqlEmployee>();
+
       services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql(Configuration.GetConnectionString("AuthDbConnection")));
 
       services.AddSession();

@@ -7,6 +7,7 @@ using System;
 namespace EmailSenderLibrary
 {
   // TODO: Should this inherit from IDisposable so that the senderPassword isn't persisting?
+  // TODO: Figure out how to log error messages to a file. ILogger and NLog? How to setup ILogger and NLog? What other options are available?
   public class EmailSender
   {
     private readonly EmailSenderServerEnum _emailServer;

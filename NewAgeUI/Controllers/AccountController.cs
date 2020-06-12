@@ -8,6 +8,10 @@ using NewAgeUI.Models;
 using NewAgeUI.Securities;
 using NewAgeUI.ViewModels;
 using EmailSenderLibrary.Utilities;
+using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.Linq;
 
 namespace NewAgeUI.Controllers
 {
@@ -15,16 +19,19 @@ namespace NewAgeUI.Controllers
   public class AccountController : Controller
   {
     private readonly UserManager<Employee> _userManager;
+    private readonly SignInManager<Employee> _signInManager;
     private readonly IEmployee _employee;
     private readonly ILogger<AccountController> _logger;
 
-    public AccountController(UserManager<Employee> userManager, IEmployee employee, ILogger<AccountController> logger)
+    public AccountController(UserManager<Employee> userManager, SignInManager<Employee> signInManager, IEmployee employee, ILogger<AccountController> logger)
     {
       _userManager = userManager;
+      _signInManager = signInManager;
       _employee = employee;
       _logger = logger;
     }
 
+    #region Register
     [HttpGet("/Register")]
     public IActionResult Register() => View();
 
@@ -47,9 +54,12 @@ namespace NewAgeUI.Controllers
       var token = await _userManager.GenerateEmailConfirmationTokenAsync(employee);
       var tokenLink = Url.Action("ConfirmEmail", "Account", new { userId = employee.Id, token }, Request.Scheme);
 
-      EmailSender emailSender = new EmailSender(RackspaceSecret.EmailServer, RackspaceSecret.Host, RackspaceSecret.Port, RackspaceSecret.SenderEmail, RackspaceSecret.SenderPassword, websiteName);
+      // TODO: Remove on production
+      _logger.LogInformation(tokenLink);
 
-      emailSender.SendConfirmationToken(EmailSenderTypeEnum.EmailConfirmation, $"{ websiteName } Admin", employee.FullName, employee.Email, tokenLink);
+      //EmailSender emailSender = new EmailSender(RackspaceSecret.EmailServer, RackspaceSecret.Host, RackspaceSecret.Port, RackspaceSecret.SenderEmail, RackspaceSecret.SenderPassword, websiteName);
+
+      //emailSender.SendConfirmationToken(EmailSenderTypeEnum.EmailConfirmation, $"{ websiteName } Admin", employee.FullName, employee.Email, tokenLink);
 
       GenerateMessage("Registration Success", "Please check your email for confirmation link");
 
@@ -62,15 +72,15 @@ namespace NewAgeUI.Controllers
       string validDomain = "golfio.com";
       string userEnteredDomain = emailAddress.Split('@')[1].ToLower();
 
-      if (userEnteredDomain != validDomain) 
+      if (userEnteredDomain != validDomain)
         return Json($"Only { validDomain } email addresses are allowed");
 
-      var user = await _userManager.FindByEmailAsync(emailAddress);
+      Employee employee = await _userManager.FindByEmailAsync(emailAddress);
 
-      if (user != null) 
+      if (employee != null)
         return Json("Email address already in use");
 
-     return Json(true);
+      return Json(true);
     }
 
     [HttpGet("/EmailConfirmation")]
@@ -105,18 +115,43 @@ namespace NewAgeUI.Controllers
 
       return RedirectToAction("Login");
     }
+    #endregion
 
     [HttpGet("/Login")]
-    public IActionResult Login()
+    public IActionResult Login() => View();
+
+    [HttpPost("/Login")]
+    public async Task<IActionResult> Login(LoginViewModel loginViewModel, string returnUrl)
     {
+      if (!ModelState.IsValid) return View();
+
+      SignInResult signInResult = await _signInManager.PasswordSignInAsync(loginViewModel.EmailAddress, loginViewModel.Password, loginViewModel.RememberMe, false);
+
+      if (signInResult.Succeeded)
+      {
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+          return Redirect(returnUrl);
+        }
+        else
+        {
+          return RedirectToAction(nameof(HomeController.Index), nameof(HomeController));
+        }
+      }
+
+      ModelState.AddModelError(string.Empty, "Invalid login attempt");
       return View();
     }
 
-    //[HttpPost("/Login")]
-    //public IActionResult Login()
-    //{
-        // Store full name in sessions with key "FullName"
-    //}
+    public async Task<IActionResult> Logout(string returnUrl = null)
+    {
+      await _signInManager.SignOutAsync();
+
+      if (returnUrl != null)
+        return LocalRedirect(returnUrl);
+      else
+        return RedirectToAction("Index", "Home");
+    }
 
     public void GenerateMessage(string title, string message)
     {
