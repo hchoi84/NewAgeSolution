@@ -10,4 +10,11 @@ namespace NewAgeUI.Models
     US,
     PH
   }
+
+  public enum ClaimTypeEnum
+  {
+    Admin,
+    NoSale,
+    User
+  }
 }

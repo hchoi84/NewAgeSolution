@@ -1,10 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using NewAgeUI.Utilities;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace NewAgeUI.ViewModels
 {
@@ -30,8 +25,7 @@ namespace NewAgeUI.ViewModels
     [Required]
     [Display(Name = "Email Address")]
     [DataType(DataType.EmailAddress)]
-    [Remote("IsEmailInUse", "Account", ErrorMessage = "Email already in use")]
-    [ValidEmailDomain("golfio.com", ErrorMessage = "Must end in golfio.com")]
+    [Remote("ValidateEmailAddress", "Account")]
     public string EmailAddress { get; set; }
 
     [Required]
