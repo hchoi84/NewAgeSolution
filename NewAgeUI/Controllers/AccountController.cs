@@ -22,6 +22,7 @@ namespace NewAgeUI.Controllers
     private readonly SignInManager<Employee> _signInManager;
     private readonly IEmployee _employee;
     private readonly ILogger<AccountController> _logger;
+    private readonly string _websiteName = "NewAge";
 
     public AccountController(UserManager<Employee> userManager, SignInManager<Employee> signInManager, IEmployee employee, ILogger<AccountController> logger)
     {
@@ -49,19 +50,17 @@ namespace NewAgeUI.Controllers
         return View();
       }
 
-      string websiteName = "NewAge";
-
       var token = await _userManager.GenerateEmailConfirmationTokenAsync(employee);
       var tokenLink = Url.Action("ConfirmEmail", "Account", new { userId = employee.Id, token }, Request.Scheme);
 
       // TODO: Remove on production
       _logger.LogInformation(tokenLink);
 
-      //EmailSender emailSender = new EmailSender(RackspaceSecret.EmailServer, RackspaceSecret.Host, RackspaceSecret.Port, RackspaceSecret.SenderEmail, RackspaceSecret.SenderPassword, websiteName);
+      //EmailSender emailSender = new EmailSender(RackspaceSecret.EmailServer, RackspaceSecret.Host, RackspaceSecret.Port, RackspaceSecret.SenderEmail, RackspaceSecret.SenderPassword, _websiteName);
 
       //emailSender.SendConfirmationToken(EmailSenderTypeEnum.EmailConfirmation, $"{ websiteName } Admin", employee.FullName, employee.Email, tokenLink);
 
-      GenerateMessage("Registration Success", "Please check your email for confirmation link");
+      GenerateToastMessage("Registration Success", "Please check your email for confirmation link");
 
       return RedirectToAction("Login");
     }
@@ -88,7 +87,7 @@ namespace NewAgeUI.Controllers
     {
       if (userId == null || token == null)
       {
-        GenerateMessage("Error", "The email confirmation token link is invalid");
+        GenerateToastMessage("Error", "The email confirmation token link is invalid");
 
         return RedirectToAction("Login");
       }
@@ -97,7 +96,7 @@ namespace NewAgeUI.Controllers
 
       if (employee == null)
       {
-        GenerateMessage("Error", "No user found");
+        GenerateToastMessage("Error", "No user found");
 
         return RedirectToAction("Login");
       }
@@ -106,17 +105,18 @@ namespace NewAgeUI.Controllers
 
       if (!result.Succeeded)
       {
-        GenerateMessage("Error", "Something went wrong while confirming the email");
+        GenerateToastMessage("Error", "Something went wrong while confirming the email");
 
         return RedirectToAction("Login");
       }
 
-      GenerateMessage("Email Confirmed", "You may now login");
+      GenerateToastMessage("Email Confirmed", "You may now login");
 
       return RedirectToAction("Login");
     }
     #endregion
 
+    #region Login
     [HttpGet("/Login")]
     public IActionResult Login() => View();
 
@@ -138,6 +138,87 @@ namespace NewAgeUI.Controllers
       ModelState.AddModelError(string.Empty, "Invalid login attempt");
       return View();
     }
+    #endregion
+
+    #region ForgotPassword
+    [HttpGet("/ForgotPassword")]
+    public IActionResult ForgotPassword() => View();
+
+    [HttpPost("/ForgotPassword")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel forgotPasswordViewModel)
+    {
+      if (!ModelState.IsValid) return View();
+
+      Employee employee = await _userManager.FindByEmailAsync(forgotPasswordViewModel.EmailAddress);
+
+      if (employee == null)
+      {
+        ModelState.AddModelError(string.Empty, "Invalid email address. Please ensure the email is correct and already registered");
+        
+        return View();
+      }
+
+      if (!employee.EmailConfirmed)
+      {
+        ModelState.AddModelError(string.Empty, "You have not confirmed your email yet");
+
+        return View();
+      }
+
+      string token = await _userManager.GeneratePasswordResetTokenAsync(employee);
+
+      var passwordResetLink = Url.Action("ResetPassword", "Account", new { emailAddress = forgotPasswordViewModel.EmailAddress, token }, Request.Scheme);
+
+      // TODO: Remove on production
+      _logger.LogInformation(passwordResetLink);
+      //EmailSender emailSender = new EmailSender(EmailSenderServerEnum.Rackspace, RackspaceSecret.Host, RackspaceSecret.Port, RackspaceSecret.SenderEmail, RackspaceSecret.SenderPassword, _websiteName);
+
+      //emailSender.SendConfirmationToken(EmailSenderTypeEnum.PasswordReset, $"{ _websiteName } Admin", employee.FullName, forgotPasswordViewModel.EmailAddress, passwordResetLink);
+
+      GenerateToastMessage("Password Reset Email Sent", "Please check your email for password reset link");
+
+      return RedirectToAction(nameof(Login));
+    }
+
+    [HttpGet("/ResetPassword")]
+    public async Task<IActionResult> ResetPassword(string emailAddress, string token)
+    {
+      if (token == null || emailAddress == null)
+      {
+        GenerateToastMessage("Invalid Link", "The link to reset your password is invalid.");
+        return RedirectToAction(nameof(Login));
+      }
+
+      Employee employee = await _userManager.FindByEmailAsync(emailAddress);
+      
+      bool isValidToken = await _userManager.VerifyUserTokenAsync(employee, TokenOptions.DefaultProvider, "ResetPassword", token);
+
+      if (!isValidToken)
+      {
+        GenerateToastMessage("Invalid Token", "The token you provided is invalid");
+        return RedirectToAction(nameof(Login));
+      }
+      
+      return View();
+    }
+
+    [HttpPost("/ResetPassword")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel resetPasswordViewModel)
+    {
+      if (!ModelState.IsValid) return View();
+
+      Employee employee = await _userManager.FindByEmailAsync(resetPasswordViewModel.EmailAddress);
+
+      IdentityResult identityResult = await _userManager.ResetPasswordAsync(employee, resetPasswordViewModel.Token, resetPasswordViewModel.Password);
+
+      if (!identityResult.Succeeded) 
+        GenerateToastMessage("Error", "Something went wrong and the password wasn't able to get reset. Please contact the Admin");
+      else
+        GenerateToastMessage("Success!", "Password has been reset sucessfully");
+
+      return RedirectToAction(nameof(Login));
+    }
+    #endregion
 
     public async Task<IActionResult> Logout(string returnUrl = null)
     {
@@ -149,7 +230,7 @@ namespace NewAgeUI.Controllers
         return RedirectToAction("Index", "Home");
     }
 
-    public void GenerateMessage(string title, string message)
+    public void GenerateToastMessage(string title, string message)
     {
       TempData["MessageTitle"] = title;
       TempData["Message"] = message;
