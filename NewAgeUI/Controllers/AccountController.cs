@@ -1,17 +1,11 @@
 ﻿using System.Threading.Tasks;
-using EmailSenderLibrary;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
-using NewAgeUI.Securities;
 using NewAgeUI.ViewModels;
-using EmailSenderLibrary.Utilities;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using System.Linq;
 
 namespace NewAgeUI.Controllers
 {
