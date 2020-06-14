@@ -9,7 +9,7 @@ using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace NewAgeUI.Controllers
 {
-  [AllowAnonymous]
+  [Route("[Controller]")]
   public class AccountController : Controller
   {
     private readonly UserManager<Employee> _userManager;
@@ -27,10 +27,12 @@ namespace NewAgeUI.Controllers
     }
 
     #region Register
-    [HttpGet("/Register")]
+    [AllowAnonymous]
+    [HttpGet("Register")]
     public IActionResult Register() => View();
 
-    [HttpPost("/Register")]
+    [AllowAnonymous]
+    [HttpPost("Register")]
     public async Task<IActionResult> RegisterAsync(RegisterViewModel registerViewModel)
     {
       if (!ModelState.IsValid) return View();
@@ -59,6 +61,7 @@ namespace NewAgeUI.Controllers
       return RedirectToAction("Login");
     }
 
+    [AllowAnonymous]
     [AcceptVerbs("GET", "POST")]
     public async Task<IActionResult> ValidateEmailAddress(string emailAddress)
     {
@@ -76,7 +79,8 @@ namespace NewAgeUI.Controllers
       return Json(true);
     }
 
-    [HttpGet("/EmailConfirmation")]
+    [AllowAnonymous]
+    [HttpGet("EmailConfirmation")]
     public async Task<IActionResult> ConfirmEmail(string userId, string token)
     {
       if (userId == null || token == null)
@@ -111,10 +115,12 @@ namespace NewAgeUI.Controllers
     #endregion
 
     #region Login
-    [HttpGet("/Login")]
+    [AllowAnonymous]
+    [HttpGet("Login")]
     public IActionResult Login() => View();
 
-    [HttpPost("/Login")]
+    [AllowAnonymous]
+    [HttpPost("Login")]
     public async Task<IActionResult> Login(LoginViewModel loginViewModel, string returnUrl)
     {
       if (!ModelState.IsValid) return View();
@@ -135,10 +141,12 @@ namespace NewAgeUI.Controllers
     #endregion
 
     #region ForgotPassword
-    [HttpGet("/ForgotPassword")]
+    [AllowAnonymous]
+    [HttpGet("ForgotPassword")]
     public IActionResult ForgotPassword() => View();
 
-    [HttpPost("/ForgotPassword")]
+    [AllowAnonymous]
+    [HttpPost("ForgotPassword")]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel forgotPasswordViewModel)
     {
       if (!ModelState.IsValid) return View();
@@ -174,7 +182,8 @@ namespace NewAgeUI.Controllers
       return RedirectToAction(nameof(Login));
     }
 
-    [HttpGet("/ResetPassword")]
+    [AllowAnonymous]
+    [HttpGet("ResetPassword")]
     public async Task<IActionResult> ResetPassword(string emailAddress, string token)
     {
       if (token == null || emailAddress == null)
@@ -196,7 +205,8 @@ namespace NewAgeUI.Controllers
       return View();
     }
 
-    [HttpPost("/ResetPassword")]
+    [AllowAnonymous]
+    [HttpPost("ResetPassword")]
     public async Task<IActionResult> ResetPassword(ResetPasswordViewModel resetPasswordViewModel)
     {
       if (!ModelState.IsValid) return View();
@@ -214,6 +224,24 @@ namespace NewAgeUI.Controllers
     }
     #endregion
 
+    [HttpGet("Profile")]
+    public async Task<IActionResult> Profile()
+    {
+      Employee employee = await _userManager.GetUserAsync(User);
+
+      IndexViewModel indexViewModel = new IndexViewModel
+      {
+        FirstName = employee.FirstName,
+        LastName = employee.LastName,
+        EmailAddress = employee.Email,
+        OfficeLocation = employee.OfficeLocation,
+        StartDate = employee.StartDate,
+      };
+
+      return View(indexViewModel);
+    }
+
+    [Authorize]
     public async Task<IActionResult> Logout(string returnUrl = null)
     {
       await _signInManager.SignOutAsync();
@@ -221,10 +249,10 @@ namespace NewAgeUI.Controllers
       if (returnUrl != null)
         return LocalRedirect(returnUrl);
       else
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction("Login", "Account");
     }
 
-    public void GenerateToastMessage(string title, string message)
+    private void GenerateToastMessage(string title, string message)
     {
       TempData["MessageTitle"] = title;
       TempData["Message"] = message;

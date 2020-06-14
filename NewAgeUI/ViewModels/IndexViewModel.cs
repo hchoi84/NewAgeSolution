@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace NewAgeUI.ViewModels
 {
-  public class RegisterViewModel
+  public class IndexViewModel
   {
     [Required]
     [Display(Name = "First Name")]
@@ -20,7 +21,7 @@ namespace NewAgeUI.ViewModels
     [Required]
     [Display(Name = "Office Location")]
     [MaxLength(5)]
-    public int OfficeLocation { get; set; }
+    public string OfficeLocation { get; set; }
 
     [Required]
     [Display(Name = "Email Address")]
@@ -28,16 +29,11 @@ namespace NewAgeUI.ViewModels
     [Remote("ValidateEmailAddress", "Account")]
     public string EmailAddress { get; set; }
 
-    [Required]
-    [Display(Name = "Password")]
-    [DataType(DataType.Password)]
-    [MinLength(6, ErrorMessage = "{0} must be at least {1} characters long and contain lower, upper, digit, and non-alphaneumeric")]
-    public string Password { get; set; }
+    public DateTime StartDate { get; set; }
 
-    [Required]
-    [Display(Name = "Confirm Password")]
-    [DataType(DataType.Password)]
-    [Compare("Password", ErrorMessage = "Does not match with password")]
-    public string ConfirmPassword { get; set; }
+    public string FullName 
+    {
+      get { return $"{ FirstName } { LastName }"; }
+    }
   }
 }

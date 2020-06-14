@@ -36,7 +36,7 @@ namespace NewAgeUI
       services.ConfigureApplicationCookie(options =>
       {
         options.AccessDeniedPath = new PathString("/AccessDenied");
-        options.LoginPath = new PathString("/Login");
+        options.LoginPath = new PathString("/Account/Login");
       });
 
       services.AddScoped<IEmployee, SqlEmployee>();

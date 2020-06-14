@@ -30,7 +30,7 @@ namespace NewAgeUI.Models
         LastName = registerViewModel.LastName,
         Email = registerViewModel.EmailAddress,
         UserName = registerViewModel.EmailAddress,
-        OfficeLocation = registerViewModel.OfficeLocation
+        OfficeLocation = registerViewModel.OfficeLocation.ToString()
       };
 
       IdentityResult identityResult = await _userManager.CreateAsync(employee, registerViewModel.Password);
