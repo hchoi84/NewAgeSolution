@@ -1,4 +1,4 @@
-﻿@model IndexViewModel
+﻿@model ProfileViewModel
 @{
   ViewData["Title"] = "Profile";
 }
@@ -27,6 +27,7 @@
         <input asp-for="StartDate" class="form-control" disabled/>
       </div>
       <button type="submit" class="btn btn-primary">Save</button>
+      <a asp-action="ChangePassword" class="btn btn-secondary ml-3">Change Password</a>
     </form>
   </div>
 </div>

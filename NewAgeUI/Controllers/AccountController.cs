@@ -229,16 +229,16 @@ namespace NewAgeUI.Controllers
     {
       Employee employee = await _userManager.GetUserAsync(User);
 
-      IndexViewModel indexViewModel = new IndexViewModel
+      ProfileViewModel profileViewModel = new ProfileViewModel
       {
         FirstName = employee.FirstName,
         LastName = employee.LastName,
         EmailAddress = employee.Email,
         OfficeLocation = employee.OfficeLocation,
-        StartDate = employee.StartDate,
+        StartDate = employee.StartDate.ToString("yyyy-MM-dd"),
       };
 
-      return View(indexViewModel);
+      return View(profileViewModel);
     }
 
     [Authorize]
