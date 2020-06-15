@@ -224,6 +224,7 @@ namespace NewAgeUI.Controllers
     }
     #endregion
 
+    #region Profile
     [HttpGet("Profile")]
     public async Task<IActionResult> Profile()
     {
@@ -240,6 +241,40 @@ namespace NewAgeUI.Controllers
 
       return View(profileViewModel);
     }
+
+    [HttpGet("ChangePassword")]
+    public IActionResult ChangePassword() => View();
+
+    [HttpPost("ChangePassword")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel changePasswordViewModel)
+    {
+      if (!ModelState.IsValid) return View();
+
+      Employee employee = await _userManager.GetUserAsync(User);
+
+      bool isCorrectCurrentPassword = await _userManager.CheckPasswordAsync(employee, changePasswordViewModel.CurrentPassword);
+
+      if (!isCorrectCurrentPassword)
+      {
+        ModelState.AddModelError(string.Empty, "Incorrect current password");
+        
+        return View();
+      }
+
+      IdentityResult result = await _userManager.ChangePasswordAsync(employee, changePasswordViewModel.CurrentPassword, changePasswordViewModel.NewPassword);
+
+      if (!result.Succeeded)
+      {
+        ModelState.AddModelError(string.Empty, "Something went wrong.");
+
+        return View();
+      }
+
+      TempData["Success"] = "Password has been updated successfully";
+
+      return RedirectToAction(nameof(Profile));
+    }
+    #endregion
 
     [Authorize]
     public async Task<IActionResult> Logout(string returnUrl = null)
