@@ -18,6 +18,8 @@ namespace NewAgeUI.ViewModels
     [Display(Name = "Email Address")]
     public string EmailAddress { get; set; }
 
+    public bool IsEmailVerified { get; set; }
+
     [Display(Name = "Start Date")]
     public string StartDate { get; set; }
 

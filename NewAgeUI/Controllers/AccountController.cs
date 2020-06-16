@@ -258,6 +258,7 @@ namespace NewAgeUI.Controllers
         FirstName = employee.FirstName,
         LastName = employee.LastName,
         EmailAddress = employee.Email,
+        IsEmailVerified = employee.EmailConfirmed,
         OfficeLocation = employee.OfficeLocation,
         StartDate = employee.StartDate.ToString("yyyy-MM-dd"),
       };

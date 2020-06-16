@@ -9,23 +9,39 @@
     <form id="profile-form" method="post">
       <div class="form-group">
         <label asp-for="FirstName"></label>
-        <input asp-for="FirstName" class="form-control" disabled/>
+        <input asp-for="FirstName" class="form-control" disabled />
       </div>
       <div class="form-group">
         <label asp-for="LastName"></label>
-        <input asp-for="LastName" class="form-control" disabled/>
+        <input asp-for="LastName" class="form-control" disabled />
       </div>
       <div class="form-group">
         <label asp-for="OfficeLocation"></label>
-        <input asp-for="OfficeLocation" class="form-control" disabled/>
+        <input asp-for="OfficeLocation" class="form-control" disabled />
       </div>
       <div class="form-group">
         <label asp-for="EmailAddress"></label>
-        <input asp-for="EmailAddress" class="form-control" disabled/>
+        <div class="input-group">
+          <input asp-for="EmailAddress" class="form-control" disabled />
+          <div class="input-group-append">
+            @if (Model.IsEmailVerified)
+            {
+              <i data-toggle="tooltip" data-placement="right" title="Email Verified">
+                <span class="input-group-text">✔</span>
+              </i>
+            }
+            else
+            {
+              <i data-toggle="tooltip" data-placement="right" title="Email Not Verified">
+                <span class="input-group-text text-danger">✘</span>
+              </i>
+            }
+          </div>
+        </div>
       </div>
       <div class="form-group">
         <label asp-for="StartDate"></label>
-        <input asp-for="StartDate" class="form-control" disabled/>
+        <input asp-for="StartDate" class="form-control" disabled />
       </div>
       <p class="text-info">To change info, please contact your Admin</p>
       <a asp-action="ChangePassword" class="btn btn-secondary">Change Password</a>
@@ -34,5 +50,7 @@
 </div>
 
 @section Scripts {
-  <partial name="_ValidationScriptsPartial" />
+  <script>
+    $('[data-toggle="tooltip"]').tooltip();
+  </script>
 }
