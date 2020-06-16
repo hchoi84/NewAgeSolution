@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using NewAgeUI.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -33,11 +32,11 @@ namespace NewAgeUI.Models
         OfficeLocation = Enum.GetName(typeof(OfficeLocationEnum), Int32.Parse(registerViewModel.OfficeLocation))
       };
 
+      bool isFirstUser = !_userManager.Users.Any();
+
       IdentityResult identityResult = await _userManager.CreateAsync(employee, registerViewModel.Password);
 
       if (!identityResult.Succeeded) return (null, "Failed to create User");
-
-      bool isFirstUser = _userManager.Users.Take(1) == null;
 
       if (isFirstUser)
         newClaim = new Claim(ClaimTypeEnum.Admin.ToString(), "true");

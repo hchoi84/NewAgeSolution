@@ -1,10 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using EmailSenderLibrary;
 using EmailSenderLibrary.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
 using NewAgeUI.Securities;
@@ -56,19 +61,19 @@ namespace NewAgeUI.Controllers
       var tokenLink = Url.Action("ConfirmEmail", "Account", new { userId = employee.Id, token }, Request.Scheme);
 
       // TODO: Remove on production
-      //_logger.LogInformation(tokenLink);
+      _logger.LogInformation(tokenLink);
 
-      try
-      {
-        SendTokenConfirmationEmail(EmailSenderTypeEnum.EmailConfirmation, employee, tokenLink);
-      }
-      catch (Exception e)
-      {
-        _logger.LogError(e.Message);
-        ModelState.AddModelError(string.Empty, "Something went wrong. Please contact the Admin");
+      //try
+      //{
+      //  SendTokenConfirmationEmail(EmailSenderTypeEnum.EmailConfirmation, employee, tokenLink);
+      //}
+      //catch (Exception e)
+      //{
+      //  _logger.LogError(e.Message);
+      //  ModelState.AddModelError(string.Empty, "Something went wrong. Please contact the Admin");
         
-        return View();
-      }
+      //  return View();
+      //}
 
       GenerateToastMessage("Registration Success", "Please check your email for confirmation link");
 
@@ -297,6 +302,37 @@ namespace NewAgeUI.Controllers
       TempData["Success"] = "Password has been updated successfully";
 
       return RedirectToAction(nameof(Profile));
+    }
+    #endregion
+
+    #region Admin
+    [HttpGet("Admin")]
+    public async Task<IActionResult> Admin()
+    {
+      List<Employee> employees = await _userManager.Users.ToListAsync();
+      List<AdminViewModel> adminViewModels = new List<AdminViewModel>();
+
+      foreach (Employee employee in employees)
+      {
+        List<string> claimType = new List<string>();
+
+        (await _userManager.GetClaimsAsync(employee)).ToList().ForEach(c => claimType.Add(c.Type));
+
+        AdminViewModel adminViewModel = new AdminViewModel
+        {
+          Id = employee.Id,
+          FullName = employee.FullName,
+          EmailAddress = employee.Email,
+          IsEmailVerified = employee.EmailConfirmed,
+          StartDate = employee.StartDate,
+          AccessPermission = string.Join(", ", claimType),
+          OfficeLocation = employee.OfficeLocation
+        };
+
+        adminViewModels.Add(adminViewModel);
+      }
+
+      return View(adminViewModels);
     }
     #endregion
 
