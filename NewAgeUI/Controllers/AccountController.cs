@@ -1,9 +1,13 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
+using EmailSenderLibrary;
+using EmailSenderLibrary.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
+using NewAgeUI.Securities;
 using NewAgeUI.ViewModels;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
@@ -16,14 +20,16 @@ namespace NewAgeUI.Controllers
     private readonly SignInManager<Employee> _signInManager;
     private readonly IEmployee _employee;
     private readonly ILogger<AccountController> _logger;
+    private readonly IEmailSender _emailSender;
     private readonly string _websiteName = "NewAge";
 
-    public AccountController(UserManager<Employee> userManager, SignInManager<Employee> signInManager, IEmployee employee, ILogger<AccountController> logger)
+    public AccountController(UserManager<Employee> userManager, SignInManager<Employee> signInManager, IEmployee employee, ILogger<AccountController> logger, IEmailSender emailSender)
     {
       _userManager = userManager;
       _signInManager = signInManager;
       _employee = employee;
       _logger = logger;
+      _emailSender = emailSender;
     }
 
     #region Register
@@ -50,11 +56,19 @@ namespace NewAgeUI.Controllers
       var tokenLink = Url.Action("ConfirmEmail", "Account", new { userId = employee.Id, token }, Request.Scheme);
 
       // TODO: Remove on production
-      _logger.LogInformation(tokenLink);
+      //_logger.LogInformation(tokenLink);
 
-      //EmailSender emailSender = new EmailSender(RackspaceSecret.EmailServer, RackspaceSecret.Host, RackspaceSecret.Port, RackspaceSecret.SenderEmail, RackspaceSecret.SenderPassword, _websiteName);
-
-      //emailSender.SendConfirmationToken(EmailSenderTypeEnum.EmailConfirmation, $"{ websiteName } Admin", employee.FullName, employee.Email, tokenLink);
+      try
+      {
+        SendTokenConfirmationEmail(EmailSenderTypeEnum.EmailConfirmation, employee, tokenLink);
+      }
+      catch (Exception e)
+      {
+        _logger.LogError(e.Message);
+        ModelState.AddModelError(string.Empty, "Something went wrong. Please contact the Admin");
+        
+        return View();
+      }
 
       GenerateToastMessage("Registration Success", "Please check your email for confirmation link");
 
@@ -173,9 +187,18 @@ namespace NewAgeUI.Controllers
 
       // TODO: Remove on production
       _logger.LogInformation(passwordResetLink);
-      //EmailSender emailSender = new EmailSender(EmailSenderServerEnum.Rackspace, RackspaceSecret.Host, RackspaceSecret.Port, RackspaceSecret.SenderEmail, RackspaceSecret.SenderPassword, _websiteName);
 
-      //emailSender.SendConfirmationToken(EmailSenderTypeEnum.PasswordReset, $"{ _websiteName } Admin", employee.FullName, forgotPasswordViewModel.EmailAddress, passwordResetLink);
+      try
+      {
+        SendTokenConfirmationEmail(EmailSenderTypeEnum.PasswordReset, employee, passwordResetLink);
+      }
+      catch (Exception e)
+      {
+        _logger.LogError(e.Message);
+        ModelState.AddModelError(string.Empty, "Something went wrong. Please contact the Admin");
+
+        return View();
+      }
 
       GenerateToastMessage("Password Reset Email Sent", "Please check your email for password reset link");
 
@@ -291,6 +314,15 @@ namespace NewAgeUI.Controllers
     {
       TempData["MessageTitle"] = title;
       TempData["Message"] = message;
+    }
+
+    private void SendTokenConfirmationEmail(EmailSenderTypeEnum emailSenderType, Employee employee, string tokenLink)
+    {
+      _emailSender.SetConnectionInfo(RackspaceSecret.EmailServer, RackspaceSecret.Host, RackspaceSecret.Port, RackspaceSecret.SenderEmail, RackspaceSecret.SenderPassword, $"{ _websiteName } Admin", _websiteName);
+
+      _emailSender.GenerateTokenConfirmationContent(emailSenderType, employee.FullName, employee.Email, tokenLink);
+
+      _emailSender.SendEmail();
     }
   }
 }

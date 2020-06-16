@@ -8,50 +8,36 @@ namespace EmailSenderLibrary
 {
   // TODO: Should this inherit from IDisposable so that the senderPassword isn't persisting?
   // TODO: Figure out how to log error messages to a file. ILogger and NLog? How to setup ILogger and NLog? What other options are available?
-  public class EmailSender
+  public class EmailSender : IEmailSender
   {
-    private readonly EmailSenderServerEnum _emailServer;
-    private readonly string _host;
-    private readonly int _port;
-    private readonly string _senderEmail;
-    private readonly string _senderPassword;
-    private readonly string _websiteName;
+    private EmailSenderServerEnum _emailServer;
+    private string _host;
+    private int _port;
+    private string _senderEmail;
+    private string _senderPassword;
+    private string _senderName;
+    private string _websiteName;
+    private MimeMessage message = new MimeMessage();
 
-    public EmailSender(EmailSenderServerEnum emailServer, string host, int port, string senderEmail, string senderPassword, string websiteName)
+    public void SetConnectionInfo(EmailSenderServerEnum emailServer, string host, int port, string senderEmail, string senderPassword, string senderName, string websiteName)
     {
       _emailServer = emailServer;
       _host = host;
       _port = port;
       _senderEmail = senderEmail;
       _senderPassword = senderPassword;
+      _senderName = senderName;
       _websiteName = websiteName;
     }
 
-    public (EmailSenderConfirmationEnum, string) SendConfirmationToken(EmailSenderTypeEnum emailType, string fromName, string toName, string toEmail, string tokenLink)
+    public void GenerateTokenConfirmationContent(EmailSenderTypeEnum emailType, string toName, string toEmail, string tokenLink)
     {
-      MailboxAddress from = new MailboxAddress(fromName, _senderEmail);
+      MailboxAddress from = new MailboxAddress(_senderName, _senderEmail);
       MailboxAddress to = new MailboxAddress(toName, toEmail);
-
-      MimeMessage message = new MimeMessage();
-      message.From.Add(from);
-      message.To.Add(to);
       
-      GenerateEmail(emailType, toName, tokenLink, message);
+      message.To.Add(to);
+      message.From.Add(from);
 
-      try
-      {
-        SendEmail(message);
-      }
-      catch (Exception e)
-      {
-        return (EmailSenderConfirmationEnum.Failed, e.Message);
-      }
-
-      return (EmailSenderConfirmationEnum.Success, "Email sent successfully");
-    }
-
-    private void GenerateEmail(EmailSenderTypeEnum emailType, string toName, string tokenLink, MimeMessage message)
-    {
       string subject;
       BodyBuilder bodyBuilder = new BodyBuilder();
 
@@ -84,7 +70,7 @@ namespace EmailSenderLibrary
       message.Body = bodyBuilder.ToMessageBody();
     }
 
-    private void SendEmail(MimeMessage message)
+    public void SendEmail()
     {
       using (SmtpClient client = new SmtpClient())
       {
@@ -93,6 +79,7 @@ namespace EmailSenderLibrary
           client.CheckCertificateRevocation = false;
           client.SslProtocols = SslProtocols.Tls;
         }
+
         try
         {
           client.Connect(_host, _port, MailKit.Security.SecureSocketOptions.SslOnConnect);

@@ -1,3 +1,4 @@
+using EmailSenderLibrary;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -40,6 +41,8 @@ namespace NewAgeUI
       });
 
       services.AddScoped<IEmployee, SqlEmployee>();
+
+      services.AddTransient<IEmailSender, EmailSender>();
 
       services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql(Configuration.GetConnectionString("AuthDbConnection")));
 

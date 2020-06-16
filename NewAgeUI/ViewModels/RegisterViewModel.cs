@@ -20,7 +20,7 @@ namespace NewAgeUI.ViewModels
     [Required]
     [Display(Name = "Office Location")]
     [MaxLength(5)]
-    public int OfficeLocation { get; set; }
+    public string OfficeLocation { get; set; }
 
     [Required]
     [Display(Name = "Email Address")]

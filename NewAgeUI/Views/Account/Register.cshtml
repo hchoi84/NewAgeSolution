@@ -30,6 +30,7 @@
       <Select asp-for="OfficeLocation" asp-items="Html.GetEnumSelectList<OfficeLocationEnum>()" class="form-control">
         <option value="">Please Select</option>
       </Select>
+      <span asp-validation-for="OfficeLocation" class="text-danger"></span>
     </div>
   </div>
 
