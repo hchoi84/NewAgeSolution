@@ -306,6 +306,7 @@ namespace NewAgeUI.Controllers
     #endregion
 
     #region Admin
+    [Authorize(Policy = "Admin")]
     [HttpGet("Admin")]
     public async Task<IActionResult> Admin()
     {
@@ -320,19 +321,73 @@ namespace NewAgeUI.Controllers
 
         AdminViewModel adminViewModel = new AdminViewModel
         {
-          Id = employee.Id,
+          EmployeeId = employee.Id,
           FullName = employee.FullName,
           EmailAddress = employee.Email,
           IsEmailVerified = employee.EmailConfirmed,
-          StartDate = employee.StartDate,
           AccessPermission = string.Join(", ", claimType),
-          OfficeLocation = employee.OfficeLocation
         };
 
         adminViewModels.Add(adminViewModel);
       }
 
       return View(adminViewModels);
+    }
+
+    [Authorize(Policy = "Admin")]
+    [HttpGet("Admin/{employeeId}")]
+    public async Task<IActionResult> ViewEmployee(string employeeId)
+    {
+      Employee employee = await _userManager.FindByIdAsync(employeeId);
+
+      List<string> claimType = new List<string>();
+
+      (await _userManager.GetClaimsAsync(employee)).ToList().ForEach(c => claimType.Add(c.Type));
+
+      ViewEmployeeViewModel model = new ViewEmployeeViewModel
+      {
+        EmployeeId = employee.Id,
+        FirstName = employee.FirstName,
+        LastName = employee.LastName,
+        EmailAddress = employee.Email,
+        StartDate = employee.StartDate,
+        AccessPermission = string.Join(", ", claimType),
+        OfficeLocation = employee.OfficeLocation
+      };
+
+      return View(model);
+    }
+
+    [Authorize(Policy = "Admin")]
+    [HttpGet("Admin/{employeeId}/EditName")]
+    public async Task<IActionResult> EditEmployeeName(string employeeId)
+    {
+      Employee employee = await _userManager.FindByIdAsync(employeeId);
+
+      EditEmployeeNameViewModel model = new EditEmployeeNameViewModel
+      {
+        EmployeeId = employee.Id,
+        FirstName = employee.FirstName,
+        LastName = employee.LastName
+      };
+
+      return View(model);
+    }
+
+    [Authorize(Policy = "Admin")]
+    [HttpGet("Admin/{employeeId}/EditEmail")]
+    public async Task<IActionResult> EditEmployeeEmail(string employeeId)
+    {
+
+      return View();
+    }
+
+    [Authorize(Policy = "Admin")]
+    [HttpGet("Admin/{employeeId}/EditAP")]
+    public async Task<IActionResult> EditEmployeeAP(string employeeId)
+    {
+
+      return View();
     }
     #endregion
 

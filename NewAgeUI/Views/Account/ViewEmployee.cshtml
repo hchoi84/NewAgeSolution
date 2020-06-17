@@ -1,0 +1,47 @@
+﻿@model ViewEmployeeViewModel
+
+@{
+  ViewData["Title"] = "View Employee";
+}
+
+<div class="row">
+  <div class="col-md-3">
+    <partial name="_AdminEmployeeNavPartial" model="Model.EmployeeId" />
+  </div>
+  <div class="col-md-9">
+    <form method="post">
+      <div class="form-row">
+        <div class="form-group col-md-6">
+          <label asp-for="FirstName"></label>
+          <input asp-for="FirstName" class="form-control" placeholder="First Name" disabled>
+          <span asp-validation-for="FirstName" class="text-danger"></span>
+        </div>
+        <div class="form-group col-md-6">
+          <label asp-for="LastName"></label>
+          <input asp-for="LastName" class="form-control" placeholder="Last Name" disabled>
+          <span asp-validation-for="LastName" class="text-danger"></span>
+        </div>
+        <div class="form-group col-md-6">
+          <label asp-for="EmailAddress"></label>
+          <input asp-for="EmailAddress" class="form-control" placeholder="Last Name" disabled>
+          <span asp-validation-for="EmailAddress" class="text-danger"></span>
+        </div>
+        <div class="form-group col-md-6">
+          <label asp-for="StartDate"></label>
+          <input asp-for="StartDate" class="form-control" placeholder="Last Name" disabled>
+          <span asp-validation-for="StartDate" class="text-danger"></span>
+        </div>
+        <div class="form-group col-md-6">
+          <label asp-for="AccessPermission"></label>
+          <input asp-for="AccessPermission" class="form-control" placeholder="Last Name" disabled>
+          <span asp-validation-for="AccessPermission" class="text-danger"></span>
+        </div>
+        <div class="form-group col-md-6">
+          <label asp-for="OfficeLocation"></label>
+          <input asp-for="OfficeLocation" class="form-control" placeholder="Last Name" disabled>
+          <span asp-validation-for="OfficeLocation" class="text-danger"></span>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
