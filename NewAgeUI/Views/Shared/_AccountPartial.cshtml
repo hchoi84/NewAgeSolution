@@ -1,15 +1,33 @@
 ﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+
+@inject UserManager<Employee> UserManager
 @inject SignInManager<Employee> SignInManager
+@inject IAuthorizationService AuthorizationService
+
+@{
+  string fullName = "";
+  if (SignInManager.IsSignedIn(User))
+  {
+    fullName = (await UserManager.GetUserAsync(User)).FullName;
+  }
+}
 
 <ul class="navbar-nav">
   @if (SignInManager.IsSignedIn(User))
   {
     <li class="nav-item">
-      <a class="nav-link text-dark" asp-controller="Account" asp-action="Profile">Hello @User.Identity.Name</a>
+      <a class="nav-link text-dark" asp-controller="Account" asp-action="Profile">Hello @fullName</a>
     </li>
+    @if ((await AuthorizationService.AuthorizeAsync(User, "Admin")).Succeeded)
+    {
+      <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Admin" asp-action="Index">Admin</a>
+      </li>
+    }
     <li class="nav-item">
-      <form class="form-inline" asp-controller="Account" asp-action="Logout">
-        <button type="submit" class="nav-link btn btn-link text-dark">Logout</button>
+      <form asp-controller="Account" asp-action="Logout">
+        <button type="submit" class="nav-link btn btn-link text-dark" style="margin-top: -1px;">Logout</button>
       </form>
     </li>
   }
