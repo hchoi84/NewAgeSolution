@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NewAgeUI.Models;
+using NewAgeUI.Utilities;
 
 namespace NewAgeUI
 {
@@ -41,6 +42,7 @@ namespace NewAgeUI
       });
 
       services.AddScoped<IEmployee, SqlEmployee>();
+      services.AddScoped<IRackspace, RackspaceEmailSender>();
 
       services.AddTransient<IEmailSender, EmailSender>();
 

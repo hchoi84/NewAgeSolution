@@ -1,5 +1,19 @@
 ﻿@model string
 
 <ul class="nav nav-pills flex-column">
-  <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="EditEmployeeName" asp-route-employeeId="@Model">Edit Name</a></li>
+  <li class="nav-item">
+    <a class="nav-link" asp-controller="Admin" asp-action="ViewEmployee" asp-route-employeeId="@Model">Profile</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" asp-controller="Admin" asp-action="EditName" asp-route-employeeId="@Model">Edit Name</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" asp-controller="Admin" asp-action="EditEmail" asp-route-employeeId="@Model">Edit Email</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" asp-controller="Admin" asp-action="Edit AP" asp-route-employeeId="@Model">Edit AP</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" asp-controller="Admin" asp-action="Index">Back</a>
+  </li>
 </ul>

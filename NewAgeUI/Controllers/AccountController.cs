@@ -1,18 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using EmailSenderLibrary;
 using EmailSenderLibrary.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
 using NewAgeUI.Securities;
+using NewAgeUI.Utilities;
 using NewAgeUI.ViewModels;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
@@ -25,16 +21,16 @@ namespace NewAgeUI.Controllers
     private readonly SignInManager<Employee> _signInManager;
     private readonly IEmployee _employee;
     private readonly ILogger<AccountController> _logger;
-    private readonly IEmailSender _emailSender;
+    private readonly IRackspace _rackspace;
     private readonly string _websiteName = "NewAge";
 
-    public AccountController(UserManager<Employee> userManager, SignInManager<Employee> signInManager, IEmployee employee, ILogger<AccountController> logger, IEmailSender emailSender)
+    public AccountController(UserManager<Employee> userManager, SignInManager<Employee> signInManager, IEmployee employee, ILogger<AccountController> logger, IRackspace rackspace)
     {
       _userManager = userManager;
       _signInManager = signInManager;
       _employee = employee;
       _logger = logger;
-      _emailSender = emailSender;
+      _rackspace = rackspace;
     }
 
     #region Register
@@ -58,22 +54,33 @@ namespace NewAgeUI.Controllers
       }
 
       var token = await _userManager.GenerateEmailConfirmationTokenAsync(employee);
+      
       var tokenLink = Url.Action("ConfirmEmail", "Account", new { userId = employee.Id, token }, Request.Scheme);
 
       // TODO: Remove on production
-      _logger.LogInformation(tokenLink);
+      //_logger.LogInformation(tokenLink);
 
-      //try
-      //{
-      //  SendTokenConfirmationEmail(EmailSenderTypeEnum.EmailConfirmation, employee, tokenLink);
-      //}
-      //catch (Exception e)
-      //{
-      //  _logger.LogError(e.Message);
-      //  ModelState.AddModelError(string.Empty, "Something went wrong. Please contact the Admin");
-        
-      //  return View();
-      //}
+      string subject = "New Registration Confirmation";
+
+      string body = $"<h1>Hello { employee.FullName } </h1> \n\n" +
+          $"<p>You've recently registered on { _websiteName }</p> \n\n" +
+          "<p>Please click below to confirm your email address</p> \n\n" +
+          $"<a href='{ tokenLink }'><button style='color:#fff; background-color:#007bff; border-color:#007bff;'>Confirm</button></a> \n\n" +
+          "<p>If the link doesn't work, you can copy and paste the below URL</p> \n\n" +
+          $"<p> { tokenLink } </p> \n\n\n" +
+          "<p>Thank you!</p>";
+
+      try
+      {
+        _rackspace.SendEmail(employee, subject, body);
+      }
+      catch (Exception e)
+      {
+        _logger.LogError(e.Message);
+        ModelState.AddModelError(string.Empty, "Something went wrong. Please contact the Admin");
+
+        return View();
+      }
 
       GenerateToastMessage("Registration Success", "Please check your email for confirmation link");
 
@@ -124,12 +131,12 @@ namespace NewAgeUI.Controllers
       {
         GenerateToastMessage("Error", "Something went wrong while confirming the email");
 
-        return RedirectToAction("Login");
+        return RedirectToAction(nameof(Login));
       }
 
       GenerateToastMessage("Email Confirmed", "You may now login");
 
-      return RedirectToAction("Login");
+      return RedirectToAction(nameof(Login));
     }
     #endregion
 
@@ -188,14 +195,24 @@ namespace NewAgeUI.Controllers
 
       string token = await _userManager.GeneratePasswordResetTokenAsync(employee);
 
-      var passwordResetLink = Url.Action("ResetPassword", "Account", new { emailAddress = forgotPasswordViewModel.EmailAddress, token }, Request.Scheme);
+      var tokenLink = Url.Action("ResetPassword", "Account", new { emailAddress = forgotPasswordViewModel.EmailAddress, token }, Request.Scheme);
 
       // TODO: Remove on production
-      _logger.LogInformation(passwordResetLink);
+      //_logger.LogInformation(tokenLink);
+
+      string subject = "Password Reset Request Confirmation";
+
+      string body = $"<h1>Hello { employee.FullName } </h1> \n\n" +
+          $"<p>You've recently requested for password reset</p> \n\n" +
+          "<p>Please click below to reset your password</p> \n\n" +
+          $"<a href='{ tokenLink }'><button style='color:#fff; background-color:#007bff; border-color:#007bff;'>Confirm</button></a> \n\n" +
+          "<p>If the link doesn't work, you can copy and paste the below URL</p> \n\n" +
+          $"<p> { tokenLink } </p> \n\n\n" +
+          "<p>Thank you!</p>";
 
       try
       {
-        SendTokenConfirmationEmail(EmailSenderTypeEnum.PasswordReset, employee, passwordResetLink);
+        _rackspace.SendEmail(employee, subject, body);
       }
       catch (Exception e)
       {
@@ -305,6 +322,33 @@ namespace NewAgeUI.Controllers
     }
     #endregion
 
+    [AllowAnonymous]
+    [HttpGet("ChangeEmailConfirmation")]
+    public async Task<IActionResult> ConfirmEmailChange(string userId, string newEmail, string token)
+    {
+      if (userId == null || newEmail == null || token == null)
+      {
+        GenerateToastMessage("Error", "The email confirmation token link is invalid");
+
+        return RedirectToAction(nameof(Login));
+      }
+
+      Employee employee = await _userManager.FindByIdAsync(userId);
+
+      IdentityResult result = await _userManager.ChangeEmailAsync(employee, newEmail, token);
+
+      if (!result.Succeeded)
+      {
+        GenerateToastMessage("Error", "Something went wrong while confirming the email");
+
+        return RedirectToAction(nameof(Login));
+      }
+
+      GenerateToastMessage("Email Successfully Updated", "You may now login using your new Email address");
+
+      return RedirectToAction(nameof(Login));
+    }
+
     [HttpPost("Logout")]
     public async Task<IActionResult> Logout(string returnUrl = null)
     {
@@ -320,15 +364,6 @@ namespace NewAgeUI.Controllers
     {
       TempData["MessageTitle"] = title;
       TempData["Message"] = message;
-    }
-
-    private void SendTokenConfirmationEmail(EmailSenderTypeEnum emailSenderType, Employee employee, string tokenLink)
-    {
-      _emailSender.SetConnectionInfo(RackspaceSecret.EmailServer, RackspaceSecret.Host, RackspaceSecret.Port, RackspaceSecret.SenderEmail, RackspaceSecret.SenderPassword, $"{ _websiteName } Admin", _websiteName);
-
-      _emailSender.GenerateTokenConfirmationContent(emailSenderType, employee.FullName, employee.Email, tokenLink);
-
-      _emailSender.SendEmail();
     }
   }
 }

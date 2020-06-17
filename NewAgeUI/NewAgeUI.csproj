@@ -17,8 +17,4 @@
     <ProjectReference Include="..\EmailLibrary\EmailSenderLibrary.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Utilities\" />
-  </ItemGroup>
-
 </Project>
