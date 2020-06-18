@@ -7,7 +7,6 @@ using NewAgeUI.Models;
 
 namespace NewAgeUI.Controllers
 {
-  [AllowAnonymous]
   public class HomeController : Controller
   {
     private readonly ILogger<HomeController> _logger;

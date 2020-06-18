@@ -9,6 +9,9 @@
       <label asp-for="EmailAddress"></label>
       <input asp-for="EmailAddress" class="form-control">
       <span asp-validation-for="EmailAddress" class="text-danger"></span>
+      <div>
+        <a asp-action="ResendEmailConfirmationToken" class="form-text text-primary small"><u>Resend Email Confirmation Token</u></a>
+      </div>
     </div>
     <div class="form-group">
       <label asp-for="Password"></label>

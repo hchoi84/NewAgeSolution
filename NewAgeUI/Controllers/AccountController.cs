@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Threading.Tasks;
-using EmailSenderLibrary;
-using EmailSenderLibrary.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
-using NewAgeUI.Securities;
 using NewAgeUI.Utilities;
 using NewAgeUI.ViewModels;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
@@ -82,7 +79,7 @@ namespace NewAgeUI.Controllers
         return View();
       }
 
-      GenerateToastMessage("Registration Success", "Please check your email for confirmation link");
+      GenerateToastMessage("Registration Success", "Please check your email for confirmation link. Allow up to 5 minutes for the email to arrive.");
 
       return RedirectToAction("Login");
     }
@@ -320,6 +317,54 @@ namespace NewAgeUI.Controllers
       TempData["Success"] = "Password has been updated successfully";
 
       return RedirectToAction(nameof(Profile));
+    }
+    #endregion
+
+    #region ResendEmailConfirmationToken
+    [AllowAnonymous]
+    [HttpGet("ResendEmailConfirmationToken")]
+    public IActionResult ResendEmailConfirmationToken() => View();
+
+    [AllowAnonymous]
+    [HttpPost("ResendEmailConfirmationToken")]
+    public async Task<IActionResult> ResendEmailConfirmationToken(ResendEmailConfirmationLinkViewModel model)
+    {
+      Employee employee = await _userManager.FindByEmailAsync(model.EmailAddress);
+
+      if (employee == null)
+      {
+        GenerateToastMessage("Email sent", $"Email confirmation token has been sent to { model.EmailAddress }.");
+
+        return RedirectToAction(nameof(Login));
+      }
+
+      string token = await _userManager.GenerateEmailConfirmationTokenAsync(employee);
+
+      string tokenLink = Url.Action("ConfirmEmail", "Account", new { userId = employee.Id, token }, Request.Scheme);
+
+      string subject = "Resend Email Confirmation Request";
+
+      string body = $"<h1>Hello { employee.FullName } </h1> \n\n" +
+          $"<p>You've recently requested to resend email confirmation link on { _websiteName }</p> \n\n" +
+          "<p>Please click below to confirm your email address</p> \n\n" +
+          $"<a href='{ tokenLink }'><button style='color:#fff; background-color:#007bff; border-color:#007bff;'>Confirm</button></a> \n\n" +
+          "<p>If the link doesn't work, you can copy and paste the below URL</p> \n\n" +
+          $"<p> { tokenLink } </p> \n\n\n" +
+          "<p>Thank you!</p>";
+
+      try
+      {
+        _rackspace.SendEmail(employee, subject, body);
+      }
+      catch (Exception e)
+      {
+        _logger.LogError(e.Message);
+        ModelState.AddModelError(string.Empty, "Something went wrong. Please contact the Admin");
+
+        return View();
+      }
+
+      return RedirectToAction(nameof(Login));
     }
     #endregion
 

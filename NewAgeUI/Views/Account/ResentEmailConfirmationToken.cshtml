@@ -1,0 +1,20 @@
+﻿@model ResendEmailConfirmationLinkViewModel
+
+@{
+  ViewData["Title"] = "Register";
+}
+
+<form method="post">
+  @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label asp-for="EmailAddress"></label>
+      <input asp-for="EmailAddress" class="form-control" placeholder="Email Address">
+      <span asp-validation-for="EmailAddress" class="text-danger"></span>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Submit</button>
+  <a asp-controller="Account" asp-action="Login" class="btn btn-secondary ml-3">Login</a>
+</form>
