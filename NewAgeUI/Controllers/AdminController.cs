@@ -1,17 +1,15 @@
-﻿using EmailSenderLibrary;
-using EmailSenderLibrary.Utilities;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
-using NewAgeUI.Securities;
 using NewAgeUI.Utilities;
 using NewAgeUI.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace NewAgeUI.Controllers
@@ -170,8 +168,71 @@ namespace NewAgeUI.Controllers
     [HttpGet("{employeeId}/EditAP")]
     public async Task<IActionResult> EditAP(string employeeId)
     {
+      Employee employee = await _userManager.FindByIdAsync(employeeId);
 
-      return View();
+      EditAPViewModel model = new EditAPViewModel() { EmployeeId = employeeId };
+
+      List<Claim> userClaims = (await _userManager.GetClaimsAsync(employee)).ToList();
+
+      string[] availableClaimTypes = Enum.GetNames(typeof(ClaimTypeEnum));
+
+      foreach (var availableClaimType in availableClaimTypes)
+      {
+        if (userClaims.Exists(c => c.Type.ToString() == availableClaimType))
+        {
+          model.ClaimTypes.Add(availableClaimType);
+          model.ClaimValues.Add(true);
+          continue;
+        }
+
+        model.ClaimTypes.Add(availableClaimType);
+        model.ClaimValues.Add(false);
+      }
+
+      return View(model);
+    }
+
+    [HttpPost("{employeeId}/EditAP")]
+    public async Task<IActionResult> EditAP(EditAPViewModel model)
+    {
+      Employee employee = await _userManager.FindByIdAsync(model.EmployeeId);
+      List<Claim> userClaims = (await _userManager.GetClaimsAsync(employee)).ToList();
+
+      bool isGivenAdminAccess = model.ClaimTypes.Contains(ClaimTypeEnum.Admin.ToString());
+
+      if (isGivenAdminAccess)
+      {
+        bool isInUserClaims = userClaims.Exists(c => c.Type == ClaimTypeEnum.Admin.ToString());
+
+        if (!isInUserClaims)
+        {
+          await _userManager.RemoveClaimsAsync(employee, userClaims);
+          await _userManager.AddClaimAsync(employee, new Claim(ClaimTypeEnum.Admin.ToString(), "true"));
+        }
+      }
+      else
+      {
+        for (var i = 0; i < model.ClaimTypes.Count; i++)
+        {
+          bool isInUserClaims = userClaims.Exists(c => c.Type == model.ClaimTypes[i]);
+
+          if (model.ClaimValues[i] == true)
+          {
+            if (isInUserClaims) continue;
+
+            await _userManager.AddClaimAsync(employee, new Claim(model.ClaimTypes[i], "true"));
+          }
+          else
+          {
+            if (!isInUserClaims) continue;
+
+            Claim claim = userClaims.FirstOrDefault(c => c.Type == model.ClaimTypes[i]);
+            await _userManager.RemoveClaimAsync(employee, claim);
+          }
+        }
+      }
+
+      return RedirectToAction(nameof(ViewEmployee), new { employeeId = model.EmployeeId });
     }
   }
 }

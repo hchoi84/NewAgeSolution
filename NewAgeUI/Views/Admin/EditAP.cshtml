@@ -1,0 +1,31 @@
+﻿@model EditAPViewModel
+
+@{
+  ViewData["Title"] = "Edit AP";
+}
+<div class="row">
+  <div class="col-md-3">
+    <partial name="_EmployeeViewNavPartial" model="Model.EmployeeId" />
+  </div>
+  <div class="col-md-9">
+    <form method="post">
+      @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+      <div class="form-group">
+        @for (int i = 0; i < Model.ClaimTypes.Count; i++)
+        {
+        <div class="form-check">
+          <input type="hidden" asp-for="@Model.ClaimTypes[i]">
+          <input asp-for="@Model.ClaimValues[i]" class="form-check-input" />
+          <label asp-for="@Model.ClaimValues[i]" class="form-check-label">@Model.ClaimTypes[i]</label>
+        </div>
+        }
+      </div>
+
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+  </div>
+</div>
+
+@section Scripts {
+  <partial name="_ValidationScriptsPartial" />
+}

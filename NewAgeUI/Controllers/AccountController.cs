@@ -141,6 +141,7 @@ namespace NewAgeUI.Controllers
     #endregion
 
     #region Login
+    // TODO: Implement ResendEmailConfirmationToken()
     [AllowAnonymous]
     [HttpGet("Login")]
     public IActionResult Login() => View();
