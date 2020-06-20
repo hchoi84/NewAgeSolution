@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
+using NewAgeUI.Securities;
 using NewAgeUI.Utilities;
 using NewAgeUI.ViewModels;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
@@ -88,7 +89,7 @@ namespace NewAgeUI.Controllers
     [AcceptVerbs("GET", "POST")]
     public async Task<IActionResult> ValidateEmailAddress(string emailAddress)
     {
-      string validDomain = "golfio.com";
+      string validDomain = $"{ RackspaceSecret.Domain }";
       string userEnteredDomain = emailAddress.Split('@')[1].ToLower();
 
       if (userEnteredDomain != validDomain)

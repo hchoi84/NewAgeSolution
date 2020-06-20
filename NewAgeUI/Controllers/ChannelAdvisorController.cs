@@ -4,6 +4,7 @@ using ChannelAdvisorLibrary.Models;
 using NewAgeUI.Securities;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using NewAgeUI.Models;
 
 namespace NewAgeUI.Controllers
 {
@@ -25,7 +26,12 @@ namespace NewAgeUI.Controllers
 
     public IActionResult Index()
     {
-      string filter = "LastSaleDateUtc lt 2016-03-01";
+      //example of creating filter
+      //string profileId = ChannelAdvisorSecret.ProfileId[ChannelAdvisorProfileEnum.Main];
+
+      //string filter = $"profileid eq { profileId } and LastSaleDateUtc lt 2016-03-01";
+
+      string filter = $"LastSaleDateUtc lt 2016-03-01";
       List<ProductModel> product = _ca.GetProducts(filter);
 
       return Json(product);
