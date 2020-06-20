@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.30204.135
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NewAgeUI", "NewAgeUI\NewAgeUI.csproj", "{CD1A8482-D421-4173-BDF5-CBE4834C54FF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmailSenderLibrary", "EmailLibrary\EmailSenderLibrary.csproj", "{4FA2C794-2D33-4F42-8139-1F33E3DB8A2E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmailSenderLibrary", "EmailLibrary\EmailSenderLibrary.csproj", "{4FA2C794-2D33-4F42-8139-1F33E3DB8A2E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChannelAdvisorLibrary", "ChannelAdvisorLibrary\ChannelAdvisorLibrary.csproj", "{7D198E04-063A-4852-A0D6-29F9B635CFBB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{4FA2C794-2D33-4F42-8139-1F33E3DB8A2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4FA2C794-2D33-4F42-8139-1F33E3DB8A2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4FA2C794-2D33-4F42-8139-1F33E3DB8A2E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D198E04-063A-4852-A0D6-29F9B635CFBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D198E04-063A-4852-A0D6-29F9B635CFBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D198E04-063A-4852-A0D6-29F9B635CFBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D198E04-063A-4852-A0D6-29F9B635CFBB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
