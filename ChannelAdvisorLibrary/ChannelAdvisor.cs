@@ -23,8 +23,6 @@ namespace ChannelAdvisorLibrary
       {
         RequestNewAccessToken(accessToken, expiresIn, ca);
       }
-
-      Console.WriteLine(ca.AccessToken);
     }
 
     private void RequestNewAccessToken(string accessToken, string expiresIn, CaConnectionModel ca)

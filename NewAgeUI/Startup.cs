@@ -29,7 +29,8 @@ namespace NewAgeUI
       {
         var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
         options.Filters.Add(new AuthorizeFilter(policy));
-      });
+      })
+        .AddNewtonsoftJson();
 
       services.AddIdentity<Employee, IdentityRole>()
         .AddEntityFrameworkStores<NewAgeDbContext>()
