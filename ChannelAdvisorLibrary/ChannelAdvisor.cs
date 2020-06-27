@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ChannelAdvisorLibrary
 {
@@ -52,9 +53,14 @@ namespace ChannelAdvisorLibrary
       ca.TokenExpireDateTime = DateTime.Now.AddSeconds(Convert.ToDouble(result[expiresIn]) - ca.TokenExpireBuffer);
     }
 
-    public List<ProductModel> GetProducts(string filter)
+    public async Task<List<ProductModel>> GetProductsAsync(string filter, string expand, string select)
     {
-      string reqUri = $"https://api.channeladvisor.com/v1/Products?access_token={ ca.AccessToken }&$filter={ filter }&$expand=Attributes,Labels,DCQuantities";
+      string reqUri = $"https://api.channeladvisor.com/v1/Products?access_token={ ca.AccessToken }";
+
+      if (!string.IsNullOrWhiteSpace(filter)) reqUri += $"&$filter={ filter }";
+      // Attributes,Labels,DCQuantities
+      if (!string.IsNullOrWhiteSpace(expand)) reqUri += $"&$expand={ expand }";
+      if (!string.IsNullOrWhiteSpace(select)) reqUri += $"&$select={ select }";
       
       List<ProductModel> products = new List<ProductModel>();
 
@@ -67,9 +73,9 @@ namespace ChannelAdvisorLibrary
         };
 
         HttpClient client = new HttpClient();
-        var response = client.SendAsync(request).Result;
+        HttpResponseMessage response = await client.SendAsync(request);
         HttpContent content = response.Content;
-        string result = content.ReadAsStringAsync().Result;
+        string result = await content.ReadAsStringAsync();
         JObject jObject = JObject.Parse(result);
         
         reqUri = (string)jObject["@odata.nextLink"];
@@ -86,22 +92,31 @@ namespace ChannelAdvisorLibrary
       {
         ProductModel productModel = p.ToObject<ProductModel>();
 
-        foreach (var attribute in (JArray)p["Attributes"])
+        if (p["Attributes"] != null)
         {
-          AttributeModel attributeModel = attribute.ToObject<AttributeModel>();
-          productModel.Attributes.Add(attributeModel);
+          foreach (var attribute in (JArray)p["Attributes"])
+          {
+            AttributeModel attributeModel = attribute.ToObject<AttributeModel>();
+            productModel.Attributes.Add(attributeModel);
+          }
         }
 
-        foreach (var label in (JArray)p["Labels"])
+        if (p["Labels"] != null)
         {
-          LabelModel labelModel = label.ToObject<LabelModel>();
-          productModel.Labels.Add(labelModel);
+          foreach (var label in (JArray)p["Labels"])
+          {
+            LabelModel labelModel = label.ToObject<LabelModel>();
+            productModel.Labels.Add(labelModel);
+          }
         }
 
-        foreach (var dcQty in (JArray)p["DCQuantities"])
+        if (p["DCQuantities"] != null)
         {
-          DcQuantityModel dcQuantityModel = dcQty.ToObject<DcQuantityModel>();
-          productModel.DCQuantities.Add(dcQuantityModel);
+          foreach (var dcQty in (JArray)p["DCQuantities"])
+          {
+            DcQuantityModel dcQuantityModel = dcQty.ToObject<DcQuantityModel>();
+            productModel.DCQuantities.Add(dcQuantityModel);
+          } 
         }
 
         products.Add(productModel);

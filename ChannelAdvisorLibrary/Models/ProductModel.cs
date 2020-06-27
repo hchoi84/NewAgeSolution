@@ -11,7 +11,6 @@ namespace ChannelAdvisorLibrary.Models
     public DateTime CreateDateUtc { get; set; }
     public DateTime UpdateDateUtc { get; set; }
     public DateTime QuantityUpdateDateUtc { get; set; }
-    public bool IsAvailableInStore { get; set; }
     public bool IsBlocked { get; set; }
     public bool IsExternalQuantityBlocked { get; set; }
     public DateTime? LastSaleDateUtc { get; set; }
@@ -28,13 +27,11 @@ namespace ChannelAdvisorLibrary.Models
     public float Length { get; set; }
     public float Width { get; set; }
     public float Weight { get; set; }
-    public float Cost { get; set; }
+    public float? Cost { get; set; }
     public float RetailPrice { get; set; }
     public float BuyItNowPrice { get; set; }
     public string Classification { get; set; }
-    public bool IsDisplayInStore { get; set; }
     public string StoreTitle { get; set; }
-    public string BundleType { get; set; }
     public string ProductType { get; set; }
     public int TotalAvailableQuantity { get; set; }
     public int OpenAllocatedQuantity { get; set; }

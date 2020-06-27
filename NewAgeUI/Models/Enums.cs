@@ -8,6 +8,4 @@ namespace NewAgeUI.Models
   public enum OfficeLocationEnum { US, PH }
 
   public enum ClaimTypeEnum { Admin, NoSale, User }
-
-  public enum ChannelAdvisorProfileEnum { Main, Other }
 }
