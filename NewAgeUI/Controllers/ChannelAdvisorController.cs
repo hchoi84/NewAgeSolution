@@ -2,15 +2,12 @@
 using ChannelAdvisorLibrary;
 using ChannelAdvisorLibrary.Models;
 using NewAgeUI.Securities;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
-using NewAgeUI.Models;
 using System;
 using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using NewAgeUI.ViewModels;
 using Microsoft.EntityFrameworkCore.Internal;
-using System.Diagnostics.Eventing.Reader;
 using System.Threading.Tasks;
 
 namespace NewAgeUI.Controllers
@@ -39,6 +36,8 @@ namespace NewAgeUI.Controllers
     [HttpPost("NoSalesReport")]
     public async Task<IActionResult> ProductsByLastSoldDate(DateTime lastSoldDate)
     {
+      //TODO: validate lastSoldDate. Ensure month and date is 2 digits and year is 4 digits. Must be in the past. 
+
       List<Task> tasks = new List<Task>();
       List<ProductModel> products = await GetSiblingsAsync(lastSoldDate);
 

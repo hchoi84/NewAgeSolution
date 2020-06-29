@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmailSenderLibrary", "Email
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChannelAdvisorLibrary", "ChannelAdvisorLibrary\ChannelAdvisorLibrary.csproj", "{7D198E04-063A-4852-A0D6-29F9B635CFBB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkuVaultLibrary", "SkuVaultLibrary\SkuVaultLibrary.csproj", "{7E25A89C-F019-4CCB-AAAA-CF4573C767F2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SkuVaultLibrary", "SkuVaultLibrary\SkuVaultLibrary.csproj", "{7E25A89C-F019-4CCB-AAAA-CF4573C767F2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileReaderLibrary", "FileReaderLibrary\FileReaderLibrary.csproj", "{CFC9033B-1450-4989-94E9-7191A7E5B386}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{7E25A89C-F019-4CCB-AAAA-CF4573C767F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E25A89C-F019-4CCB-AAAA-CF4573C767F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E25A89C-F019-4CCB-AAAA-CF4573C767F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFC9033B-1450-4989-94E9-7191A7E5B386}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFC9033B-1450-4989-94E9-7191A7E5B386}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFC9033B-1450-4989-94E9-7191A7E5B386}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFC9033B-1450-4989-94E9-7191A7E5B386}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -17,7 +17,12 @@
   <ItemGroup>
     <ProjectReference Include="..\ChannelAdvisorLibrary\ChannelAdvisorLibrary.csproj" />
     <ProjectReference Include="..\EmailLibrary\EmailSenderLibrary.csproj" />
+    <ProjectReference Include="..\FileReaderLibrary\FileReaderLibrary.csproj" />
     <ProjectReference Include="..\SkuVaultLibrary\SkuVaultLibrary.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Views\FileReader\" />
   </ItemGroup>
 
 </Project>

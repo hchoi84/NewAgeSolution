@@ -1,0 +1,12 @@
+﻿@model FileImportViewModel
+@{
+  ViewData["Title"] = "Set Buffer by Store Quantity";
+}
+
+<form enctype="multipart/form-data" asp-action="SetBufferByStoreQty" method="post">
+  <div class="form-group">
+    <label asp-for="CSVFile">Example file input</label>
+    <input asp-for="CSVFile" class="form-control-file">
+  </div>
+  <button class="btn btn-primary">Submit</button>
+</form>

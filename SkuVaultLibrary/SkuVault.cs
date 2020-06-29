@@ -11,7 +11,7 @@ namespace SkuVaultLibrary
     {
       HttpClient client = new HttpClient();
       client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-      var response = await client.PostAsync(reqUri, content);
+      HttpResponseMessage response = await client.PostAsync(reqUri, content);
       HttpContent httpContent = response.Content;
       string result = await httpContent.ReadAsStringAsync();
       JObject jObject = JObject.Parse(result);
