@@ -13,8 +13,6 @@ using NewAgeUI.ViewModels;
 using System.IO;
 using Microsoft.VisualBasic.FileIO;
 using System.Linq;
-using System;
-using Org.BouncyCastle.Math.EC.Rfc7748;
 
 namespace NewAgeUI.Controllers
 {
@@ -26,31 +24,8 @@ namespace NewAgeUI.Controllers
     private readonly string _userToken = "UserToken";
 
     [HttpGet("")]
-    public async Task<IActionResult> Index()
+    public IActionResult Index()
     {
-      //SkuVault skuVault = new SkuVault();
-
-      //JObject tokens = await GetTokensAsync(skuVault);
-
-      //string reqUri = "https://app.skuvault.com/api/inventory/getInventoryByLocation";
-
-      //string body = JsonConvert.SerializeObject(
-      //  new
-      //  {
-      //    IsReturnByCodes = false,
-      //    PageNumber = 0,
-      //    PageSize = 1000,
-      //    ProductSKUs = new[] { "ANN0583_004" },
-      //    TenantToken = tokens[_tenantToken],
-      //    UserToken = tokens[_userToken]
-      //  });
-
-      //StringContent content = new StringContent(body, Encoding.UTF8, "application/json");
-
-      //JObject result = await skuVault.GetDataAsync(reqUri, content);
-
-      //return Json(result);
-
       return RedirectToAction(nameof(SetBufferByStoreQty));
     }
 
@@ -65,19 +40,33 @@ namespace NewAgeUI.Controllers
       //List<ProductQuantityBufferModel> buffers = new List<ProductQuantityBufferModel>();
       //await ReadFile(model, buffers);
 
-      string complete = "";
-      var jObject = await GetInventoryByLocationAsync();
-      foreach (JProperty item in jObject["Items"])
+      List<string> skusWithStoreQty = new List<string>();
+
+      int pageNumber = 0;
+      bool hasMoreProducts;
+      int pageSize = 10000; //range is 1000 to 10000
+
+      do
       {
-        string sku = item.Name;
-        string loc = item.Value[0]["LocationCode"].ToString();
-        string quantity = item.Value[0]["Quantity"].ToString();
+        var jObject = await GetInventoryByLocationAsync(pageNumber, pageSize);
+        hasMoreProducts = ((JObject)jObject["Items"]).Count == pageSize;
+        if (hasMoreProducts) pageNumber++;
 
-        complete = $"{ sku }: { loc } { quantity }";
-        break;
-      }
+        foreach (var item in (JObject)jObject["Items"])
+        {
+          if (item.Value.Count() == 0) continue;
 
-      return Json(complete);
+          foreach (JObject location in item.Value)
+          {
+            if (location["LocationCode"].ToString() == "STORE")
+            {
+              skusWithStoreQty.Add(item.Key);
+            }
+          }
+        }
+      } while (hasMoreProducts);
+
+      return Json(skusWithStoreQty);
     }
 
     private async Task ReadFile(FileImportViewModel model, List<ProductQuantityBufferModel> buffers)
@@ -135,7 +124,7 @@ namespace NewAgeUI.Controllers
       }
     }
 
-    private async Task<JObject> GetInventoryByLocationAsync()
+    private async Task<JObject> GetInventoryByLocationAsync(int pageNumber, int pageSize)
     {
       SkuVault skuVault = new SkuVault();
 
@@ -147,9 +136,9 @@ namespace NewAgeUI.Controllers
         new
         {
           IsReturnByCodes = false,
-          PageNumber = 0,
-          PageSize = 1000,
-          ProductSKUs = new[] { "YOA2071_02", "ANN0583_004" },
+          PageNumber = pageNumber,
+          PageSize = pageSize,
+          //ProductSKUs = new[] { "YOA2071_02", "ANN0583_004" },
           TenantToken = tokens[_tenantToken],
           UserToken = tokens[_userToken]
         });
