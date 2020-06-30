@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ChannelAdvisorLibrary
 {
-  public class ChannelAdvisor
+  public class ChannelAdvisor : IChannelAdvisor
   {
     CaConnectionModel ca = new CaConnectionModel();
 
@@ -80,7 +80,7 @@ namespace ChannelAdvisorLibrary
         
         reqUri = (string)jObject["@odata.nextLink"];
 
-        ConvertToModel(jObject, products);
+        await Task.Run(() => ConvertToModel(jObject, products));
       }
 
       return products;

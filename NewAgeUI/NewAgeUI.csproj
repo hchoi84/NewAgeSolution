@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Folder Include="Views\FileReader\" />
+    <Folder Include="Views\SkuVault\" />
   </ItemGroup>
 
 </Project>

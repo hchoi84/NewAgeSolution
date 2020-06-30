@@ -1,3 +1,4 @@
+using ChannelAdvisorLibrary;
 using EmailSenderLibrary;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NewAgeUI.Models;
 using NewAgeUI.Utilities;
+using SkuVaultLibrary;
 
 namespace NewAgeUI
 {
@@ -44,6 +46,8 @@ namespace NewAgeUI
 
       services.AddScoped<IEmployee, SqlEmployee>();
       services.AddScoped<IRackspace, RackspaceEmailSender>();
+      services.AddScoped<IChannelAdvisor, ChannelAdvisor>();
+      services.AddScoped<ISkuVault, SkuVault>();
 
       services.AddTransient<IEmailSender, EmailSender>();
 

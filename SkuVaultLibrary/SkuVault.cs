@@ -5,7 +5,7 @@ using System.Net.Http.Headers;
 
 namespace SkuVaultLibrary
 {
-  public class SkuVault
+  public class SkuVault : ISkuVault
   {
     public async Task<JObject> GetDataAsync(string reqUri, StringContent content)
     {
