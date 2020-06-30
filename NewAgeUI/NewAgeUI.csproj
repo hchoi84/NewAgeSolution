@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Views\ChannelAdvisor\" />
     <Folder Include="Views\FileReader\" />
     <Folder Include="Views\SkuVault\" />
   </ItemGroup>

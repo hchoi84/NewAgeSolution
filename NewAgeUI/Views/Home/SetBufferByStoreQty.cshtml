@@ -1,4 +1,8 @@
 ﻿@model FileImportViewModel
+
+@using NewAgeUI.Utilities 
+@using Microsoft.AspNetCore.Http
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
 @{
   ViewData["Title"] = "Set Buffer by Store Quantity";
 }
@@ -10,3 +14,10 @@
   </div>
   <button class="btn btn-primary">Submit</button>
 </form>
+
+@if (httpContextAccessor.HttpContext.Session.GetObject<System.Text.StringBuilder>("storeBuffer") != null)
+{
+  <form asp-action="DownloadReport" method="post">
+    <button class="btn btn-primary" type="submit">Download</button>
+  </form>
+}

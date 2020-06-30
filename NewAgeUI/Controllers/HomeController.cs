@@ -9,11 +9,13 @@ using System.Threading.Tasks;
 using ChannelAdvisorLibrary;
 using ChannelAdvisorLibrary.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualBasic.FileIO;
 using NewAgeUI.Models;
 using NewAgeUI.Securities;
+using NewAgeUI.Utilities;
 using NewAgeUI.ViewModels;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -38,14 +40,11 @@ namespace NewAgeUI.Controllers
     [HttpGet("")]
     public IActionResult Index() => View();
 
-    [HttpGet("Privacy")]
-    public IActionResult Privacy() => View();
-
     #region NoSalesReport
     [HttpGet("NoSalesReport")]
     public IActionResult NoSalesReport() => View();
 
-    [HttpPost("NoSalesReport")]
+    [HttpPost("ProductsByLastSoldDate")]
     public async Task<IActionResult> ProductsByLastSoldDate(DateTime lastSoldDate)
     {
       //TODO: validate lastSoldDate. Ensure month and date is 2 digits and year is 4 digits. Must be in the past. 
@@ -62,8 +61,11 @@ namespace NewAgeUI.Controllers
 
       model = model.OrderBy(m => m.SKU).ToList();
 
-      return View(model);
+      return RedirectToAction(nameof(ProductsByLastSoldDate), new { model });
     }
+
+    [HttpGet("ProductsByLastSoldDate")]
+    public IActionResult ProductsByLastSoldDate(List<ProductsByLastSoldDateViewModel> model) => View(model);
 
     private async Task<List<ProductModel>> GetSiblingsAsync(DateTime lastSoldDate)
     {
@@ -200,9 +202,38 @@ namespace NewAgeUI.Controllers
         }
       }
 
-      //Generate CSV file that's ready to be imported to SkuVault
+      //Convert dictionary to List<string>
+      StringBuilder sb = new StringBuilder();
+      
+      sb.AppendLine("SKU,Code,Channel Name,Do not send quantity for this SKU,Include incoming quantity mode,Buffer Quantity Mode,Buffer quantity,Maximum quantity to push mode,Maximum quantity to push,Push constant quantity mode,Push constant quantity,Check marketplace quantity,Delay interval,Maximum consecutive delays");
 
-      return Json(productsWithStoreQty);
+      foreach (var product in productsWithStoreQty)
+      {
+        string bufferQuantityMode = product.Value == 0 ? "Off" : "Subtract";
+
+        sb.AppendLine($"{ product.Key },,CA Golfio,Off,Off,Off,{ bufferQuantityMode },{ product.Value },Off,20000,Off,0,Off,30,1");
+      }
+
+      //Generate CSV file that's ready to be imported to SkuVault
+      //Display and download to user's computer
+      HttpContext.Session.SetObject("storeBuffer", sb);
+
+      return RedirectToAction(nameof(SetBufferByStoreQty));
+    }
+
+    [HttpPost("DownloadReport")]
+    public IActionResult DownloadReport()
+    {
+      if (HttpContext.Session.GetObject<StringBuilder>("storeBuffer") == null)
+      {
+        return RedirectToAction(nameof(SetBufferByStoreQty));
+      }
+
+      var file = File(new UTF8Encoding().GetBytes(HttpContext.Session.GetObject<StringBuilder>("storeBuffer").ToString()), "text/csv", "buffer.csv");
+
+      HttpContext.Session.Remove("storeBuffer");
+
+      return file;
     }
 
     private async Task<List<string>> GetSkusFromFile(FileImportViewModel model)
