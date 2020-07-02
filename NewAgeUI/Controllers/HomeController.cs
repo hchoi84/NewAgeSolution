@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using ChannelAdvisorLibrary;
@@ -11,6 +12,8 @@ using ChannelAdvisorLibrary.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualBasic.FileIO;
 using NewAgeUI.Models;
@@ -44,139 +47,155 @@ namespace NewAgeUI.Controllers
     [HttpGet("NoSalesReport")]
     public IActionResult NoSalesReport() => View();
 
+    [HttpGet("ProductsByLastSoldDate")]
+    public IActionResult ProductsByLastSoldDate()
+    {
+      List<ProductsByLastSoldDateViewModel> model = HttpContext.Session.GetObject< List<ProductsByLastSoldDateViewModel>>("model");
+
+      HttpContext.Session.Remove("model");
+
+      return View(model);
+    }
+
     [HttpPost("ProductsByLastSoldDate")]
     public async Task<IActionResult> ProductsByLastSoldDate(DateTime lastSoldDate)
     {
-      //TODO: validate lastSoldDate. Ensure month and date is 2 digits and year is 4 digits. Must be in the past. 
+      SetConnectionWithChannelAdvisor();
 
-      List<Task> tasks = new List<Task>();
-      List<ProductModel> products = await GetSiblingsAsync(lastSoldDate);
+      List<string> distinctParentIds = await GetDistinctParentIdsAsync(lastSoldDate);
+
+      List<JObject> jObjects = await GetChildrenPerParentIdAsync(distinctParentIds);
 
       List<ProductsByLastSoldDateViewModel> model = new List<ProductsByLastSoldDateViewModel>();
 
-      tasks.Add(Task.Run(() => AddParentInfo(products, model)));
-      tasks.Add(Task.Run(() => AddChildInfo(products, model)));
+      List<JObject> filteredByProfileId = jObjects.Where(j => j["ProfileID"].ToObject<int>() == ChannelAdvisorSecret.mainProfileId).ToList();
+      ConvertToViewModel(model, filteredByProfileId);
 
-      Task.WaitAll(tasks.ToArray());
+      filteredByProfileId = jObjects.Where(j => j["ProfileID"].ToObject<int>() == ChannelAdvisorSecret.otherProfileId).ToList();
+      ConvertToViewModel(model, filteredByProfileId);
 
-      model = model.OrderBy(m => m.SKU).ToList();
+      //Create parent information
+      List<IGrouping<string, ProductsByLastSoldDateViewModel>> groupedByParentSku = model.GroupBy(m => m.ParentSKU).ToList();
 
-      return RedirectToAction(nameof(ProductsByLastSoldDate), new { model });
+      foreach (var group in groupedByParentSku)
+      {
+        ProductsByLastSoldDateViewModel prod = new ProductsByLastSoldDateViewModel();
+
+        prod.Sku = group.First().ParentSKU;
+        prod.CreateDateUtc = group.First().CreateDateUtc;
+        prod.TotalAvailableQuantity = group.Sum(g => g.TotalAvailableQuantity);
+        prod.FBA = group.Sum(g => g.FBA);
+        prod.AllName = group.First().ItemName;
+        prod.ProductLabel = group.First().ProductLabel;
+
+        model.Add(prod);
+      }
+
+      model = model.OrderBy(m => m.Sku).ToList();
+
+      HttpContext.Session.SetObject("model", model);
+
+      return RedirectToAction(nameof(ProductsByLastSoldDate));
     }
 
-    [HttpGet("ProductsByLastSoldDate")]
-    public IActionResult ProductsByLastSoldDate(List<ProductsByLastSoldDateViewModel> model) => View(model);
-
-    private async Task<List<ProductModel>> GetSiblingsAsync(DateTime lastSoldDate)
+    private void SetConnectionWithChannelAdvisor()
     {
-      List<ProductModel> products = new List<ProductModel>();
+      //Set connection with ChannelAdvisorAPI
+      _channelAdvisor.SetConnection(new CaConnectionModel
+      {
+        TokenUrl = ChannelAdvisorSecret.tokenUrl,
+        ApplicationId = ChannelAdvisorSecret.applicationId,
+        SharedSecret = ChannelAdvisorSecret.sharedSecret,
+        RefreshToken = ChannelAdvisorSecret.refreshToken,
+        TokenExpireBuffer = ChannelAdvisorSecret.tokenExpireBuffer
+      });
+    }
 
+    private async Task<List<string>> GetDistinctParentIdsAsync(DateTime lastSoldDate)
+    {
+      //Create necessary filters
       string filter = $"LastSaleDateUtc lt { lastSoldDate.ToString("yyyy-MM-dd") }";
+      string expand = "";
+      string select = "ParentProductID";
 
-      List<string> parentProductIds = new List<string>();
+      //Get products via ChannelAdvisorAPI
+      List<JObject> jObjects = await _channelAdvisor.GetProductsAsync(filter, expand, select);
 
-      (await _channelAdvisor.GetProductsAsync(filter, "", "ParentProductID"))
-        .ForEach(p => parentProductIds.Add(p.ParentProductID.ToString()));
+      //Get distinct parent ids
+      List<string> distinctParentIds = jObjects
+        .Where(j => !string.IsNullOrWhiteSpace(j[select].ToObject<string>()))
+        .Select(j => j[select].ToObject<string>())
+        .Distinct()
+        .ToList();
 
-      parentProductIds = parentProductIds.Distinct().ToList();
-      parentProductIds.RemoveAll(d => d == "");
-
-      while (parentProductIds.Count > 0)
-      {
-        bool isMoreThan10 = parentProductIds.Count > 10;
-        int x = isMoreThan10 ? 10 : parentProductIds.Count;
-
-        List<string> first10 = new List<string>();
-
-        parentProductIds.GetRange(0, x).ForEach(parentId => first10.Add($"ParentProductId eq { parentId }"));
-        parentProductIds.RemoveRange(0, x);
-
-        filter = string.Join(" or ", first10);
-
-        products.AddRange(await _channelAdvisor.GetProductsAsync(filter, "Attributes,Labels,DCQuantities", ""));
-      }
-
-      return products;
+      return distinctParentIds;
     }
 
-    private void AddParentInfo(List<ProductModel> products, List<ProductsByLastSoldDateViewModel> model)
+    private async Task<List<JObject>> GetChildrenPerParentIdAsync(List<string> distinctParentIds)
     {
-      IEnumerable<IGrouping<string, ProductModel>> groupedByParentSku = products.GroupBy(p => p.ParentSku);
+      List<JObject> jObjects = new List<JObject>();
 
-      foreach (var g in groupedByParentSku)
+      //Since ChannelAdvisorAPI only allows up to 10 filters, we'll request product information for every 10 parent ids
+      while (distinctParentIds.Count > 0)
       {
-        IEnumerable<ProductModel> productsWithMainFBA = g.Where(p => p.ProfileID == ChannelAdvisorSecret.mainProfileId && p.DCQuantities.Exists(dc => dc.DistributionCenterID == -4));
+        bool isMoreThan10 = distinctParentIds.Count > 10;
+        int x = isMoreThan10 ? 10 : distinctParentIds.Count;
 
-        IEnumerable<ProductModel> productsWithOtherFBA = g.Where(p => p.ProfileID == ChannelAdvisorSecret.otherProfileId && p.DCQuantities.Exists(dc => dc.DistributionCenterID == -4));
+        List<string> first10 = distinctParentIds.GetRange(0, x).Select(parentId => $"ParentProductId eq { parentId }").ToList();
 
-        ProductsByLastSoldDateViewModel p = new ProductsByLastSoldDateViewModel()
-        {
-          SKU = g.Key,
-          UPC = "",
-          Description = g.First().Attributes.FirstOrDefault(a => a.Name == "Item Name").Value,
-          Created = g.First().CreateDateUtc.ToString("yyyy-MM-dd"),
-          GLSD = "",
-          GBLSD = "",
-          WHQTY = g.Sum(p => p.TotalAvailableQuantity),
-          GFBA = productsWithMainFBA == null ? 0 : productsWithMainFBA.Sum(p => p.DCQuantities.First(dc => dc.DistributionCenterID == -4).AvailableQuantity),
-          GBFBA = productsWithOtherFBA == null ? 0 : productsWithOtherFBA.Sum(p => p.DCQuantities.First(dc => dc.DistributionCenterID == -4).AvailableQuantity),
-        };
+        distinctParentIds.RemoveRange(0, x);
 
-        model.Add(p);
+        string filter = string.Join(" or ", first10);
+        string expand = "Attributes,Labels,DCQuantities";
+        string select = "ProfileId,Sku,UPC,ParentSku,CreateDateUtc,LastSaleDateUtc,TotalAvailableQuantity";
+
+        jObjects.AddRange(await _channelAdvisor.GetProductsAsync(filter, expand, select));
       }
+
+      return jObjects;
     }
 
-    private void AddChildInfo(List<ProductModel> products, List<ProductsByLastSoldDateViewModel> model)
+    private void ConvertToViewModel(List<ProductsByLastSoldDateViewModel> model, List<JObject> filteredByProfileId)
     {
-      IEnumerable<IGrouping<int, ProductModel>> groupedByProfileId = products.GroupBy(p => p.ProfileID);
+      int modelCount = model.Count;
 
-      IGrouping<int, ProductModel> group = groupedByProfileId.FirstOrDefault(g => g.Key == ChannelAdvisorSecret.mainProfileId);
-
-      foreach (ProductModel product in group)
+      foreach (var item in filteredByProfileId)
       {
-        AddToModel(product, model);
-      }
+        var fbaQty = item["DCQuantities"].FirstOrDefault(i => i["DistributionCenterID"].ToObject<int>() == -4);
 
-      group = groupedByProfileId.FirstOrDefault(g => g.Key == ChannelAdvisorSecret.otherProfileId);
+        ProductsByLastSoldDateViewModel p = new ProductsByLastSoldDateViewModel();
 
-      foreach (ProductModel product in group)
-      {
-        DcQuantityModel fbaQty = product.DCQuantities.FirstOrDefault(dc => dc.DistributionCenterID == -4);
-
-        ProductsByLastSoldDateViewModel record = model.FirstOrDefault(m => m.SKU == product.Sku);
-
-        if (record != null)
+        if (modelCount != 0)
         {
-          record.GBLSD = product.LastSaleDateUtc.HasValue ? ((DateTime)product.LastSaleDateUtc).ToString("yyyy-MM-dd") : "NEVER";
-          record.GBFBA = fbaQty != null ? fbaQty.AvailableQuantity : 0;
+          p = model.FirstOrDefault(m => m.Sku == item["Sku"].ToObject<string>());
+
+          if (p != null)
+          {
+            DateTime? lsd = item["LastSaleDateUtc"].ToObject<DateTime?>();
+            p.LastSaleDateUtc = p.LastSaleDateUtc > lsd ? lsd : p.LastSaleDateUtc;
+            p.FBA += fbaQty != null ? fbaQty["AvailableQuantity"].ToObject<int>() : 0;
+            continue;
+          }
         }
-        else
-        {
-          AddToModel(product, model);
-        }
+
+        ProductsByLastSoldDateViewModel prod = item.ToObject<ProductsByLastSoldDateViewModel>();
+
+        string allName = item["Attributes"]
+          .FirstOrDefault(i => i["Name"].ToObject<string>() == "All Name")["Value"].ToObject<string>();
+
+        string itemName = item["Attributes"]
+          .FirstOrDefault(i => i["Name"].ToObject<string>() == "Item Name")["Value"].ToObject<string>();
+
+        List<string> labelNames = new List<string>()
+        { "Closeout", "Discount", "MAPNoShow", "MAPShow", "NPIP" };
+
+        prod.FBA = fbaQty != null ? fbaQty["AvailableQuantity"].ToObject<int>() : 0;
+        prod.ItemName = itemName;
+        prod.AllName = allName.Replace(itemName, "");
+        prod.ProductLabel = item["Labels"].FirstOrDefault(i => labelNames.Contains(i["Name"].ToObject<string>()))["Name"].ToObject<string>();
+
+        model.Add(prod);
       }
-    }
-
-    private void AddToModel(ProductModel product, List<ProductsByLastSoldDateViewModel> model)
-    {
-      DcQuantityModel fbaQty = product.DCQuantities.FirstOrDefault(dc => dc.DistributionCenterID == -4);
-      string itemName = product.Attributes.FirstOrDefault(a => a.Name == "Item Name").Value;
-
-      ProductsByLastSoldDateViewModel p = new ProductsByLastSoldDateViewModel()
-      {
-        SKU = product.Sku,
-        UPC = product.UPC,
-        ParentSKU = product.ParentSku,
-        Description = product.Attributes.FirstOrDefault(a => a.Name == "All Name").Value.Replace(itemName, "").Trim(),
-        Created = product.CreateDateUtc.ToString("yyyy-MM-dd"),
-        GLSD = product.LastSaleDateUtc.HasValue ? ((DateTime)product.LastSaleDateUtc).ToString("yyyy-MM-dd") : "NEVER",
-        GBLSD = "NEVER",
-        WHQTY = product.TotalAvailableQuantity,
-        GFBA = fbaQty != null ? fbaQty.AvailableQuantity : 0,
-        GBFBA = 0,
-      };
-
-      model.Add(p);
     }
     #endregion
 
@@ -184,42 +203,42 @@ namespace NewAgeUI.Controllers
     [HttpGet("SetBufferByStoreQty")]
     public IActionResult SetBufferByStoreQty() => View();
 
-    [HttpPost("SetBufferByStoreQty")]
-    public async Task<IActionResult> SetBufferByStoreQty(FileImportViewModel model)
-    {
-      List<string> productSkusWithBuffer = await GetSkusFromFile(model);
+    //[HttpPost("SetBufferByStoreQty")]
+    //public async Task<IActionResult> SetBufferByStoreQty(FileImportViewModel model)
+    //{
+    //  List<string> productSkusWithBuffer = await GetSkusFromFile(model);
 
-      Dictionary<string, int> productsWithStoreQty = await GetProductsFromAPI();
+    //  Dictionary<string, int> productsWithStoreQty = await GetProductsFromAPI();
 
-      //Iterate productSkusWithBuffer
-      //If product is in dictionary, continue
-      //Else add with 0 quantity to remove buffer
-      foreach (var product in productSkusWithBuffer)
-      {
-        if (!productsWithStoreQty.ContainsKey(product))
-        {
-          productsWithStoreQty.Add(product, 0);
-        }
-      }
+    //  //Iterate productSkusWithBuffer
+    //  //If product is in dictionary, continue
+    //  //Else add with 0 quantity to remove buffer
+    //  foreach (var product in productSkusWithBuffer)
+    //  {
+    //    if (!productsWithStoreQty.ContainsKey(product))
+    //    {
+    //      productsWithStoreQty.Add(product, 0);
+    //    }
+    //  }
 
-      //Convert dictionary to List<string>
-      StringBuilder sb = new StringBuilder();
-      
-      sb.AppendLine("SKU,Code,Channel Name,Do not send quantity for this SKU,Include incoming quantity mode,Buffer Quantity Mode,Buffer quantity,Maximum quantity to push mode,Maximum quantity to push,Push constant quantity mode,Push constant quantity,Check marketplace quantity,Delay interval,Maximum consecutive delays");
+    //  //Convert dictionary to List<string>
+    //  StringBuilder sb = new StringBuilder();
 
-      foreach (var product in productsWithStoreQty)
-      {
-        string bufferQuantityMode = product.Value == 0 ? "Off" : "Subtract";
+    //  sb.AppendLine("SKU,Code,Channel Name,Do not send quantity for this SKU,Include incoming quantity mode,Buffer Quantity Mode,Buffer quantity,Maximum quantity to push mode,Maximum quantity to push,Push constant quantity mode,Push constant quantity,Check marketplace quantity,Delay interval,Maximum consecutive delays");
 
-        sb.AppendLine($"{ product.Key },,CA Golfio,Off,Off,Off,{ bufferQuantityMode },{ product.Value },Off,20000,Off,0,Off,30,1");
-      }
+    //  foreach (var product in productsWithStoreQty)
+    //  {
+    //    string bufferQuantityMode = product.Value == 0 ? "Off" : "Subtract";
 
-      //Generate CSV file that's ready to be imported to SkuVault
-      //Display and download to user's computer
-      HttpContext.Session.SetObject("storeBuffer", sb);
+    //    sb.AppendLine($"{ product.Key },,CA Golfio,Off,Off,Off,{ bufferQuantityMode },{ product.Value },Off,20000,Off,0,Off,30,1");
+    //  }
 
-      return RedirectToAction(nameof(SetBufferByStoreQty));
-    }
+    //  //Generate CSV file that's ready to be imported to SkuVault
+    //  //Display and download to user's computer
+    //  HttpContext.Session.SetObject("storeBuffer", sb);
+
+    //  return RedirectToAction(nameof(SetBufferByStoreQty));
+    //}
 
     [HttpPost("DownloadReport")]
     public IActionResult DownloadReport()
@@ -271,40 +290,40 @@ namespace NewAgeUI.Controllers
       return result;
     }
 
-    private async Task<Dictionary<string, int>> GetProductsFromAPI()
-    {
-      //Export products from ChannelAdvisor
-      string filter = $"ProfileId eq { ChannelAdvisorSecret.mainProfileId } and IsParent eq false and DCQuantities/Any (c: c/DistributionCenterId eq 0 and c/AvailableQuantity gt 0 and c/AvailableQuantity lt 10000)";
+    //private async Task<Dictionary<string, int>> GetProductsFromAPI()
+    //{
+    //  //Export products from ChannelAdvisor
+    //  string filter = $"ProfileId eq { ChannelAdvisorSecret.mainProfileId } and IsParent eq false and DCQuantities/Any (c: c/DistributionCenterId eq 0 and c/AvailableQuantity gt 0 and c/AvailableQuantity lt 10000)";
 
-      //Only retrieve SKU and Warehouse Locations
-      string select = $"Sku, WarehouseLocation";
+    //  //Only retrieve SKU and Warehouse Locations
+    //  string select = $"Sku, WarehouseLocation";
 
-      _channelAdvisor.SetConnection(new CaConnectionModel
-      {
-        TokenUrl = ChannelAdvisorSecret.tokenUrl,
-        ApplicationId = ChannelAdvisorSecret.applicationId,
-        SharedSecret = ChannelAdvisorSecret.sharedSecret,
-        RefreshToken = ChannelAdvisorSecret.refreshToken,
-        TokenExpireBuffer = ChannelAdvisorSecret.tokenExpireBuffer
-      });
+    //  _channelAdvisor.SetConnection(new CaConnectionModel
+    //  {
+    //    TokenUrl = ChannelAdvisorSecret.tokenUrl,
+    //    ApplicationId = ChannelAdvisorSecret.applicationId,
+    //    SharedSecret = ChannelAdvisorSecret.sharedSecret,
+    //    RefreshToken = ChannelAdvisorSecret.refreshToken,
+    //    TokenExpireBuffer = ChannelAdvisorSecret.tokenExpireBuffer
+    //  });
 
-      var products = await _channelAdvisor.GetProductsAsync(filter, "", select);
+    //  var products = await _channelAdvisor.GetProductsAsync(filter, "", select);
 
-      //Create a dictionary<SKU, Qty>
-      Dictionary<string, int> productsWithStoreQty = new Dictionary<string, int>();
+    //  //Create a dictionary<SKU, Qty>
+    //  Dictionary<string, int> productsWithStoreQty = new Dictionary<string, int>();
 
-      //Retrieve Store quantity from Warehouse Locations
-      foreach (var product in products)
-      {
-        if (product.WarehouseLocation == null || !product.WarehouseLocation.Contains("STORE")) continue;
+    //  //Retrieve Store quantity from Warehouse Locations
+    //  foreach (var product in products)
+    //  {
+    //    if (product.WarehouseLocation == null || !product.WarehouseLocation.Contains("STORE")) continue;
 
-        int storeQty = Int32.Parse(product.WarehouseLocation.Split(',').FirstOrDefault(loc => loc.Contains("STORE")).Replace("STORE(", "").Replace(")", ""));
+    //    int storeQty = Int32.Parse(product.WarehouseLocation.Split(',').FirstOrDefault(loc => loc.Contains("STORE")).Replace("STORE(", "").Replace(")", ""));
 
-        productsWithStoreQty.Add(product.Sku, storeQty);
-      }
+    //    productsWithStoreQty.Add(product.Sku, storeQty);
+    //  }
 
-      return productsWithStoreQty;
-    }
+    //  return productsWithStoreQty;
+    //}
 
     private async Task<JObject> GetInventoryByLocationAsync(int pageNumber, int pageSize)
     {

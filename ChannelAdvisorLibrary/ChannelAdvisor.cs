@@ -53,7 +53,7 @@ namespace ChannelAdvisorLibrary
       ca.TokenExpireDateTime = DateTime.Now.AddSeconds(Convert.ToDouble(result[expiresIn]) - ca.TokenExpireBuffer);
     }
 
-    public async Task<List<ProductModel>> GetProductsAsync(string filter, string expand, string select)
+    public async Task<List<JObject>> GetProductsAsync(string filter, string expand, string select)
     {
       string reqUri = $"https://api.channeladvisor.com/v1/Products?access_token={ ca.AccessToken }";
 
@@ -61,8 +61,9 @@ namespace ChannelAdvisorLibrary
       // Attributes,Labels,DCQuantities
       if (!string.IsNullOrWhiteSpace(expand)) reqUri += $"&$expand={ expand }";
       if (!string.IsNullOrWhiteSpace(select)) reqUri += $"&$select={ select }";
-      
-      List<ProductModel> products = new List<ProductModel>();
+
+      //List<ProductModel> products = new List<ProductModel>();
+      List<JObject> jObjects = new List<JObject>();
 
       while (reqUri != null)
       {
@@ -72,55 +73,76 @@ namespace ChannelAdvisorLibrary
           Method = HttpMethod.Get,
         };
 
-        HttpClient client = new HttpClient();
-        HttpResponseMessage response = await client.SendAsync(request);
-        HttpContent content = response.Content;
-        string result = await content.ReadAsStringAsync();
+        string result;
+
+        using (HttpClient client = new HttpClient())
+        {
+          HttpResponseMessage response = await client.SendAsync(request);
+          HttpContent content = response.Content;
+          result = await content.ReadAsStringAsync();
+        }
         JObject jObject = JObject.Parse(result);
-        
+
         reqUri = (string)jObject["@odata.nextLink"];
 
-        await Task.Run(() => ConvertToModel(jObject, products));
+        foreach (JObject item in jObject["value"])
+        {
+          jObjects.Add(item);
+        }
       }
 
-      return products;
+      return jObjects;
     }
 
-    private void ConvertToModel(JObject jObject, List<ProductModel> products)
-    {
-      foreach (var p in (JArray)jObject["value"])
-      {
-        ProductModel productModel = p.ToObject<ProductModel>();
+    #region Record Keeping
+    //private void ConvertToModel(JObject jObject, List<ProductModel> products)
+    //{
+    //  foreach (var p in (JArray)jObject["value"])
+    //  {
+    //    ProductModel productModel = p.ToObject<ProductModel>();
 
-        if (p["Attributes"] != null)
-        {
-          foreach (var attribute in (JArray)p["Attributes"])
-          {
-            AttributeModel attributeModel = attribute.ToObject<AttributeModel>();
-            productModel.Attributes.Add(attributeModel);
-          }
-        }
+    //    if (p["Attributes"] != null)
+    //    {
+    //      foreach (var attribute in (JArray)p["Attributes"])
+    //      {
+    //        AttributeModel attributeModel = attribute.ToObject<AttributeModel>();
+    //        productModel.Attributes.Add(attributeModel);
+    //      }
+    //    }
 
-        if (p["Labels"] != null)
-        {
-          foreach (var label in (JArray)p["Labels"])
-          {
-            LabelModel labelModel = label.ToObject<LabelModel>();
-            productModel.Labels.Add(labelModel);
-          }
-        }
+    //    if (p["Labels"] != null)
+    //    {
+    //      foreach (var label in (JArray)p["Labels"])
+    //      {
+    //        LabelModel labelModel = label.ToObject<LabelModel>();
+    //        productModel.Labels.Add(labelModel);
+    //      }
+    //    }
 
-        if (p["DCQuantities"] != null)
-        {
-          foreach (var dcQty in (JArray)p["DCQuantities"])
-          {
-            DcQuantityModel dcQuantityModel = dcQty.ToObject<DcQuantityModel>();
-            productModel.DCQuantities.Add(dcQuantityModel);
-          } 
-        }
+    //    if (p["DCQuantities"] != null)
+    //    {
+    //      foreach (var dcQty in (JArray)p["DCQuantities"])
+    //      {
+    //        DcQuantityModel dcQuantityModel = dcQty.ToObject<DcQuantityModel>();
+    //        productModel.DCQuantities.Add(dcQuantityModel);
+    //      } 
+    //    }
 
-        products.Add(productModel);
-      }
-    }
+    //    products.Add(productModel);
+    //  }
+    //}
+
+    //public List<T> ConvertToListOf<T>(JArray jArray)
+    //{
+    //  List<T> items = new List<T>();
+
+    //  foreach (var item in jArray)
+    //  {
+    //    items.Add(item.ToObject<T>());
+    //  }
+
+    //  return items;
+    //}
+    #endregion
   }
 }

@@ -7,15 +7,21 @@ namespace NewAgeUI.ViewModels
 {
   public class ProductsByLastSoldDateViewModel
   {
-    public string SKU { get; set; }
+    public string Sku { get; set; }
     public string UPC { get; set; }
     public string ParentSKU { get; set; }
-    public string Description { get; set; }
-    public string Created { get; set; }
-    public string GLSD { get; set; }
-    public string GBLSD { get; set; }
-    public int WHQTY { get; set; }
-    public int GFBA { get; set; }
-    public int GBFBA { get; set; }
+    public DateTime CreateDateUtc { get; set; }
+    public int TotalAvailableQuantity { get; set; }
+    public DateTime? LastSaleDateUtc { get; set; }
+
+    //Under DCQuantities
+    public int FBA { get; set; }
+
+    //Under Attributes
+    public string ItemName { get; set; }
+    public string AllName { get; set; }
+
+    //Under Labels
+    public string ProductLabel { get; set; }
   }
 }

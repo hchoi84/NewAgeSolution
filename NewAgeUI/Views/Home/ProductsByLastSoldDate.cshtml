@@ -3,40 +3,45 @@
   ViewData["Title"] = "Products by Last Sold Report";
 }
 
-
-
 <table class="table table-condensed" style="border-collapse:collapse;">
   <thead>
     <tr>
       <th scope="col" style="width: 11%">SKU</th>
       <th scope="col" style="width: 12%">UPC</th>
       <th scope="col" style="width: 10%">Created</th>
-      <th scope="col" style="width: 33%">Description</th>
-      <th scope="col" style="width: 23%" data-toggle="tooltip" data-placement="right" title="Last Sold Date (Main/Other)">LSD ⓘ</th>
-      <th scope="col" style="width: 11%" data-toggle="tooltip" data-placement="right" title="(WH/Main/Other)">QTY ⓘ</th>
+      <th scope="col" style="width: 33%">All Name</th>
+      <th scope="col" style="width: 23%" data-toggle="tooltip" data-placement="right" title="Last Sold Date (Later date between Main and Other)">LSD ⓘ</th>
+      <th scope="col" style="width: 11%" data-toggle="tooltip" data-placement="right" title="(WH/FBA Combined)">QTY ⓘ</th>
     </tr>
   </thead>
   <tbody>
     @foreach (var product in Model)
     {
-      if (product.SKU.Length == 7)
+      if (product.Sku.Length == 7)
       {
-        <tr data-toggle="collapse" data-target="#@product.SKU" class="accordion-toggle">
-          <td colspan="2">@product.SKU</td>
-          <td>@product.Created</td>
-          <td colspan="2">@product.Description</td>
-          <td>@product.WHQTY / @product.GFBA / @product.GBFBA</td>
+        <tr data-toggle="collapse" data-target="#@product.Sku" class="accordion-toggle">
+          <td colspan="2">@product.Sku</td>
+          <td>@product.CreateDateUtc.ToString("yyyy-MM-dd")</td>
+          <td colspan="2">@product.AllName</td>
+          <td>@product.TotalAvailableQuantity / @product.FBA</td>
         </tr>
       }
       else
       {
         <tr class="hiddenRow accordian-body collapse" id="@product.ParentSKU">
-          <td>@product.SKU</td>
+          <td>@product.Sku</td>
           <td>@product.UPC</td>
-          <td>@product.Created</td>
-          <td>@product.Description</td>
-          <td>@product.GLSD / @product.GBLSD</td>
-          <td>@product.WHQTY / @product.GFBA / @product.GBFBA</td>
+          <td>@product.CreateDateUtc.ToString("yyyy-MM-dd")</td>
+          <td>@product.AllName</td>
+          @if (product.LastSaleDateUtc.HasValue)
+          {
+            <td>@product.LastSaleDateUtc.Value.ToString("yyyy-MM-dd")</td>
+          }
+          else
+          {
+            <td>NEVER</td>
+          }
+          <td>@product.TotalAvailableQuantity / @product.FBA</td>
         </tr>
       }
     }
