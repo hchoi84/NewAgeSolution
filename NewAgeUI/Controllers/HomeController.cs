@@ -40,147 +40,53 @@ namespace NewAgeUI.Controllers
       _skuVault = skuVault;
     }
 
+    //TODO: Add links to tasks
     [HttpGet("")]
     public IActionResult Index() => View();
 
     #region NoSalesReport
+    //TODO: Add instruction and how high level of what the system does as a collapsable
     [HttpGet("NoSalesReport")]
     public IActionResult NoSalesReport() => View();
 
-    [HttpGet("ProductsByLastSoldDate")]
-    public IActionResult ProductsByLastSoldDate()
+    [HttpPost("NoSalesReport")]
+    public async Task<IActionResult> NoSalesReport(DateTime lastSoldDate)
     {
-      List<ProductsByLastSoldDateViewModel> model = HttpContext.Session.GetObject< List<ProductsByLastSoldDateViewModel>>("model");
+      string filter = $"LastSaleDateUtc lt { lastSoldDate.ToString("yyyy-MM-dd") }";
+      string expand = "";
+      string select = "ParentProductID";
+      List<string> distinctParentIds = await _channelAdvisor.GetDistinctParentIdsAsync(filter, expand, select);
+
+      List<JObject> jObjects = await _channelAdvisor.GetChildrenPerParentIdAsync(distinctParentIds);
+
+      List<NoSalesReportModel> model = _channelAdvisor.ConvertToNoSalesReportModel(jObjects);
+
+      model = _channelAdvisor.AddParentInfo(model).OrderBy(m => m.Sku).ToList();
+
+      HttpContext.Session.SetObject("model", model);
+
+      return RedirectToAction(nameof(NoSalesReportResult));
+    }
+
+    [HttpGet("NoSalesReportResult")]
+    public IActionResult NoSalesReportResult()
+    {
+      List<NoSalesReportModel> model = HttpContext.Session.GetObject<List<NoSalesReportModel>>("model");
 
       HttpContext.Session.Remove("model");
 
       return View(model);
     }
 
-    [HttpPost("ProductsByLastSoldDate")]
-    public async Task<IActionResult> ProductsByLastSoldDate(DateTime lastSoldDate)
+    [AcceptVerbs("Get", "Post")]
+    public IActionResult ValidateDate(DateTime lastSoldDate)
     {
-      List<string> distinctParentIds = await GetDistinctParentIdsAsync(lastSoldDate);
-
-      List<JObject> jObjects = await GetChildrenPerParentIdAsync(distinctParentIds);
-
-      List<ProductsByLastSoldDateViewModel> model = new List<ProductsByLastSoldDateViewModel>();
-
-      List<JObject> filteredByProfileId = jObjects.Where(j => j["ProfileID"].ToObject<int>() == ChannelAdvisorSecret.mainProfileId).ToList();
-      ConvertToViewModel(model, filteredByProfileId);
-
-      filteredByProfileId = jObjects.Where(j => j["ProfileID"].ToObject<int>() == ChannelAdvisorSecret.otherProfileId).ToList();
-      ConvertToViewModel(model, filteredByProfileId);
-
-      //Create parent information
-      List<IGrouping<string, ProductsByLastSoldDateViewModel>> groupedByParentSku = model.GroupBy(m => m.ParentSKU).ToList();
-
-      foreach (var group in groupedByParentSku)
+      if (lastSoldDate >= DateTime.Today)
       {
-        ProductsByLastSoldDateViewModel prod = new ProductsByLastSoldDateViewModel();
-
-        prod.Sku = group.First().ParentSKU;
-        prod.CreateDateUtc = group.First().CreateDateUtc;
-        prod.TotalAvailableQuantity = group.Sum(g => g.TotalAvailableQuantity);
-        prod.FBA = group.Sum(g => g.FBA);
-        prod.AllName = group.First().ItemName;
-        prod.ProductLabel = group.First().ProductLabel;
-
-        model.Add(prod);
+        return Json("Date must be in the past");
       }
 
-      model = model.OrderBy(m => m.Sku).ToList();
-
-      HttpContext.Session.SetObject("model", model);
-
-      return RedirectToAction(nameof(ProductsByLastSoldDate));
-    }
-
-    private async Task<List<string>> GetDistinctParentIdsAsync(DateTime lastSoldDate)
-    {
-      //Create necessary filters
-      string filter = $"LastSaleDateUtc lt { lastSoldDate.ToString("yyyy-MM-dd") }";
-      string expand = "";
-      string select = "ParentProductID";
-
-      //Get products via ChannelAdvisorAPI
-      List<JObject> jObjects = await _channelAdvisor.GetProductsAsync(filter, expand, select);
-
-      //Get distinct parent ids
-      List<string> distinctParentIds = jObjects
-        .Where(j => !string.IsNullOrWhiteSpace(j[select].ToObject<string>()))
-        .Select(j => j[select].ToObject<string>())
-        .Distinct()
-        .ToList();
-
-      return distinctParentIds;
-    }
-
-    private async Task<List<JObject>> GetChildrenPerParentIdAsync(List<string> distinctParentIds)
-    {
-      List<JObject> jObjects = new List<JObject>();
-
-      //Since ChannelAdvisorAPI only allows up to 10 filters, we'll request product information for every 10 parent ids
-      while (distinctParentIds.Count > 0)
-      {
-        bool isMoreThan10 = distinctParentIds.Count > 10;
-        int x = isMoreThan10 ? 10 : distinctParentIds.Count;
-
-        List<string> first10 = distinctParentIds.GetRange(0, x).Select(parentId => $"ParentProductId eq { parentId }").ToList();
-
-        distinctParentIds.RemoveRange(0, x);
-
-        string filter = string.Join(" or ", first10);
-        string expand = "Attributes,Labels,DCQuantities";
-        string select = "ProfileId,Sku,UPC,ParentSku,CreateDateUtc,LastSaleDateUtc,TotalAvailableQuantity";
-
-        jObjects.AddRange(await _channelAdvisor.GetProductsAsync(filter, expand, select));
-      }
-
-      return jObjects;
-    }
-
-    private void ConvertToViewModel(List<ProductsByLastSoldDateViewModel> model, List<JObject> filteredByProfileId)
-    {
-      int modelCount = model.Count;
-
-      foreach (var item in filteredByProfileId)
-      {
-        var fbaQty = item["DCQuantities"].FirstOrDefault(i => i["DistributionCenterID"].ToObject<int>() == -4);
-
-        ProductsByLastSoldDateViewModel p = new ProductsByLastSoldDateViewModel();
-
-        if (modelCount != 0)
-        {
-          p = model.FirstOrDefault(m => m.Sku == item["Sku"].ToObject<string>());
-
-          if (p != null)
-          {
-            DateTime? lsd = item["LastSaleDateUtc"].ToObject<DateTime?>();
-            p.LastSaleDateUtc = p.LastSaleDateUtc > lsd ? lsd : p.LastSaleDateUtc;
-            p.FBA += fbaQty != null ? fbaQty["AvailableQuantity"].ToObject<int>() : 0;
-            continue;
-          }
-        }
-
-        ProductsByLastSoldDateViewModel prod = item.ToObject<ProductsByLastSoldDateViewModel>();
-
-        string allName = item["Attributes"]
-          .FirstOrDefault(i => i["Name"].ToObject<string>() == "All Name")["Value"].ToObject<string>();
-
-        string itemName = item["Attributes"]
-          .FirstOrDefault(i => i["Name"].ToObject<string>() == "Item Name")["Value"].ToObject<string>();
-
-        List<string> labelNames = new List<string>()
-        { "Closeout", "Discount", "MAPNoShow", "MAPShow", "NPIP" };
-
-        prod.FBA = fbaQty != null ? fbaQty["AvailableQuantity"].ToObject<int>() : 0;
-        prod.ItemName = itemName;
-        prod.AllName = allName.Replace(itemName, "");
-        prod.ProductLabel = item["Labels"].FirstOrDefault(i => labelNames.Contains(i["Name"].ToObject<string>()))["Name"].ToObject<string>();
-
-        model.Add(prod);
-      }
+      return Json(true);
     }
     #endregion
 
@@ -351,6 +257,8 @@ namespace NewAgeUI.Controllers
       return tokens;
     }
     #endregion
+
+
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()

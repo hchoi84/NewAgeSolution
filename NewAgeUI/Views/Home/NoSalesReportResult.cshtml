@@ -1,4 +1,4 @@
-﻿@model List<ProductsByLastSoldDateViewModel>
+﻿@model List<NoSalesReportModel>
 @{
   ViewData["Title"] = "Products by Last Sold Report";
 }
@@ -10,8 +10,9 @@
       <th scope="col" style="width: 12%">UPC</th>
       <th scope="col" style="width: 10%">Created</th>
       <th scope="col" style="width: 33%">All Name</th>
-      <th scope="col" style="width: 23%" data-toggle="tooltip" data-placement="right" title="Last Sold Date (Later date between Main and Other)">LSD ⓘ</th>
-      <th scope="col" style="width: 11%" data-toggle="tooltip" data-placement="right" title="(WH/FBA Combined)">QTY ⓘ</th>
+      <th scope="col" style="width: 14%" data-toggle="tooltip" data-placement="right" title="Last Sold Date (Later date between Main and Other)">LSD ⓘ</th>
+      <th scope="col" style="width: 11%">Label</th>
+      <th scope="col" style="width: 9%" data-toggle="tooltip" data-placement="right" title="(WH/FBA Combined)">QTY ⓘ</th>
     </tr>
   </thead>
   <tbody>
@@ -23,6 +24,7 @@
           <td colspan="2">@product.Sku</td>
           <td>@product.CreateDateUtc.ToString("yyyy-MM-dd")</td>
           <td colspan="2">@product.AllName</td>
+          <th>@product.ProductLabel</th>
           <td>@product.TotalAvailableQuantity / @product.FBA</td>
         </tr>
       }
@@ -41,6 +43,7 @@
           {
             <td>NEVER</td>
           }
+          <th>@product.ProductLabel</th>
           <td>@product.TotalAvailableQuantity / @product.FBA</td>
         </tr>
       }

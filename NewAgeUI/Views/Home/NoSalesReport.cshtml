@@ -1,13 +1,19 @@
-﻿@{
+﻿@model NoSalesReportViewModel
+@{
   ViewData["Title"] = "ChannelAdvisor";
 }
 
-<form asp-action="ProductsByLastSoldDate" method="post">
+<form asp-action="NoSalesReport" method="post">
   <div class="form-group row">
-    <label for="lastSoldDate" class="col-sm-2 col-form-label">Date</label>
+    <label asp-for="LastSoldDate" class="col-sm-2 col-form-label"></label>
     <div class="col-sm-10">
-      <input type="date" class="form-control-plaintext" id="lastSoldDate" name="lastSoldDate">
+      <input asp-for="LastSoldDate" class="form-control-plaintext">
     </div>
+    <span asp-validation-for="LastSoldDate" class="text-danger"></span>
   </div>
   <button type="submit" class="btn btn-primary">Generate</button>
 </form>
+
+@section Scripts {
+  <partial name="_ValidationScriptsPartial" />
+}
