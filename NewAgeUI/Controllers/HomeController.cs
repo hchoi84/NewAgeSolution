@@ -60,8 +60,6 @@ namespace NewAgeUI.Controllers
     [HttpPost("ProductsByLastSoldDate")]
     public async Task<IActionResult> ProductsByLastSoldDate(DateTime lastSoldDate)
     {
-      SetConnectionWithChannelAdvisor();
-
       List<string> distinctParentIds = await GetDistinctParentIdsAsync(lastSoldDate);
 
       List<JObject> jObjects = await GetChildrenPerParentIdAsync(distinctParentIds);
@@ -96,19 +94,6 @@ namespace NewAgeUI.Controllers
       HttpContext.Session.SetObject("model", model);
 
       return RedirectToAction(nameof(ProductsByLastSoldDate));
-    }
-
-    private void SetConnectionWithChannelAdvisor()
-    {
-      //Set connection with ChannelAdvisorAPI
-      _channelAdvisor.SetConnection(new CaConnectionModel
-      {
-        TokenUrl = ChannelAdvisorSecret.tokenUrl,
-        ApplicationId = ChannelAdvisorSecret.applicationId,
-        SharedSecret = ChannelAdvisorSecret.sharedSecret,
-        RefreshToken = ChannelAdvisorSecret.refreshToken,
-        TokenExpireBuffer = ChannelAdvisorSecret.tokenExpireBuffer
-      });
     }
 
     private async Task<List<string>> GetDistinctParentIdsAsync(DateTime lastSoldDate)

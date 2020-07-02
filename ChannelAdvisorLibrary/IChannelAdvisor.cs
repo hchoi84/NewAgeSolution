@@ -8,7 +8,7 @@ namespace ChannelAdvisorLibrary
 {
   public interface IChannelAdvisor
   {
-    void SetConnection(CaConnectionModel model);
+    void EstablishConnection();
     Task<List<JObject>> GetProductsAsync(string filter, string expand, string select);
   }
 }

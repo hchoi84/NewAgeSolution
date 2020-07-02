@@ -17,18 +17,6 @@ namespace NewAgeUI.Controllers
   public class ChannelAdvisorController : Controller
   {
     private ChannelAdvisor _ca = new ChannelAdvisor();
-    
-    public ChannelAdvisorController()
-    {
-      _ca.SetConnection(new CaConnectionModel
-      {
-        TokenUrl = ChannelAdvisorSecret.tokenUrl,
-        ApplicationId = ChannelAdvisorSecret.applicationId,
-        SharedSecret = ChannelAdvisorSecret.sharedSecret,
-        RefreshToken = ChannelAdvisorSecret.refreshToken,
-        TokenExpireBuffer = ChannelAdvisorSecret.tokenExpireBuffer
-      });
-    }
 
     [HttpGet("")]
     public IActionResult Index() => View();

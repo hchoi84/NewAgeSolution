@@ -12,72 +12,64 @@ namespace ChannelAdvisorLibrary
 {
   public class ChannelAdvisor : IChannelAdvisor
   {
-    CaConnectionModel ca = new CaConnectionModel();
-
-    public void SetConnection(CaConnectionModel model)
+    public void EstablishConnection()
     {
       string accessToken = "access_token";
       string expiresIn = "expires_in";
-      ca = model;
 
-      if (ca.TokenExpireDateTime < DateTime.Now || ca.TokenExpireDateTime == null)
+      if (Secrets.TokenExpireDateTime < DateTime.Now || Secrets.TokenExpireDateTime == null)
       {
-        RequestNewAccessToken(accessToken, expiresIn, ca);
-      }
-    }
+        string auth = string.Concat(Secrets.ApplicationId, ":", Secrets.SharedSecret);
+        byte[] authBytes = Encoding.ASCII.GetBytes(auth);
+        string encodedAuth = Convert.ToBase64String(authBytes);
+        string authorization = string.Concat("Basic ", encodedAuth);
 
-    private void RequestNewAccessToken(string accessToken, string expiresIn, CaConnectionModel ca)
-    {
-      string auth = string.Concat(ca.ApplicationId, ":", ca.SharedSecret);
-      byte[] authBytes = Encoding.ASCII.GetBytes(auth);
-      string encodedAuth = Convert.ToBase64String(authBytes);
-      string authorization = string.Concat("Basic ", encodedAuth);
-
-      HttpRequestMessage request = new HttpRequestMessage
-      {
-        RequestUri = new Uri(ca.TokenUrl),
-        Method = HttpMethod.Post,
-        Headers = {
+        HttpRequestMessage request = new HttpRequestMessage
+        {
+          RequestUri = new Uri(Secrets.TokenUrl),
+          Method = HttpMethod.Post,
+          Headers = {
             { HttpRequestHeader.Authorization.ToString(), authorization },
             { HttpRequestHeader.ContentType.ToString(), "application/x-www-form-urlencoded" },
           },
-        Content = new StringContent($"grant_type=refresh_token&refresh_token={ca.RefreshToken}", Encoding.UTF8, "application/json"),
-      };
+          Content = new StringContent($"grant_type=refresh_token&refresh_token={ Secrets.RefreshToken }", Encoding.UTF8, "application/json"),
+        };
 
-      HttpClient client = new HttpClient();
-      HttpResponseMessage response = client.SendAsync(request).Result;
-      HttpContent content = response.Content;
-      string json = content.ReadAsStringAsync().Result;
-      JObject result = JObject.Parse(json);
-      ca.AccessToken = result[accessToken].ToString();
-      ca.TokenExpireDateTime = DateTime.Now.AddSeconds(Convert.ToDouble(result[expiresIn]) - ca.TokenExpireBuffer);
+        HttpClient client = new HttpClient();
+        HttpResponseMessage response = client.SendAsync(request).Result;
+        HttpContent content = response.Content;
+        string json = content.ReadAsStringAsync().Result;
+        JObject result = JObject.Parse(json);
+        Secrets.AccessToken = result[accessToken].ToString();
+        Secrets.TokenExpireDateTime = DateTime.Now.AddSeconds(Convert.ToDouble(result[expiresIn]) - Secrets.TokenExpireBuffer);
+      }
     }
 
     public async Task<List<JObject>> GetProductsAsync(string filter, string expand, string select)
     {
-      string reqUri = $"https://api.channeladvisor.com/v1/Products?access_token={ ca.AccessToken }";
+      EstablishConnection();
+
+      string reqUri = $"https://api.channeladvisor.com/v1/Products?access_token={ Secrets.AccessToken }";
 
       if (!string.IsNullOrWhiteSpace(filter)) reqUri += $"&$filter={ filter }";
-      // Attributes,Labels,DCQuantities
       if (!string.IsNullOrWhiteSpace(expand)) reqUri += $"&$expand={ expand }";
       if (!string.IsNullOrWhiteSpace(select)) reqUri += $"&$select={ select }";
 
-      //List<ProductModel> products = new List<ProductModel>();
       List<JObject> jObjects = new List<JObject>();
 
       while (reqUri != null)
       {
-        HttpRequestMessage request = new HttpRequestMessage
-        {
-          RequestUri = new Uri(reqUri),
-          Method = HttpMethod.Get,
-        };
+        //HttpRequestMessage request = new HttpRequestMessage
+        //{
+        //  RequestUri = new Uri(reqUri),
+        //  Method = HttpMethod.Get,
+        //};
 
         string result;
 
         using (HttpClient client = new HttpClient())
         {
-          HttpResponseMessage response = await client.SendAsync(request);
+          HttpResponseMessage response = await client.GetAsync(reqUri);
           HttpContent content = response.Content;
           result = await content.ReadAsStringAsync();
         }
@@ -85,10 +77,7 @@ namespace ChannelAdvisorLibrary
 
         reqUri = (string)jObject["@odata.nextLink"];
 
-        foreach (JObject item in jObject["value"])
-        {
-          jObjects.Add(item);
-        }
+        foreach (JObject item in jObject["value"]) jObjects.Add(item);
       }
 
       return jObjects;
