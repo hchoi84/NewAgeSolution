@@ -13,6 +13,6 @@ namespace ChannelAdvisorLibrary
     Task<List<string>> GetDistinctParentIdsAsync(string filter, string expand, string select);
     Task<List<JObject>> GetChildrenPerParentIdAsync(List<string> distinctParentIds);
     List<NoSalesReportModel> ConvertToNoSalesReportModel(List<JObject> jObjects);
-    List<NoSalesReportModel> AddParentInfo(List<NoSalesReportModel> model); 
+    List<NoSalesReportModel> AddParentInfo(List<NoSalesReportModel> model);
   }
 }

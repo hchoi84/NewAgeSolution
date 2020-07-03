@@ -139,7 +139,6 @@ namespace NewAgeUI.Controllers
     #endregion
 
     #region Login
-    // TODO: Implement ResendEmailConfirmationToken()
     [AllowAnonymous]
     [HttpGet("Login")]
     public IActionResult Login() => View();
@@ -397,14 +396,12 @@ namespace NewAgeUI.Controllers
     }
 
     [HttpPost("Logout")]
-    public async Task<IActionResult> Logout(string returnUrl = null)
+    public async Task<IActionResult> Logout()
     {
+      HttpContext.Session.Clear();
       await _signInManager.SignOutAsync();
 
-      if (returnUrl != null)
-        return LocalRedirect(returnUrl);
-      else
-        return RedirectToAction("Login", "Account");
+      return RedirectToAction("Login", "Account");
     }
 
     private void GenerateToastMessage(string title, string message)

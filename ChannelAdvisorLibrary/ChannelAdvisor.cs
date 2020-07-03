@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,11 +12,31 @@ namespace ChannelAdvisorLibrary
 {
   public class ChannelAdvisor : IChannelAdvisor
   {
+    #region strings
+    private readonly string _accessToken = "access_token";
+    private readonly string _expiresIn = "expires_in";
+    private readonly string _appForm = "application/x-www-form-urlencoded";
+    private readonly string _appJson = "application/json";
+    private readonly string _odataNextLink = "@odata.nextLink";
+    private readonly string _value = "value";
+    private readonly string _profileId = "ProfileID";
+    private readonly string _dcQuantities = "DCQuantities";
+    private readonly string _distributionCenterID = "DistributionCenterID";
+    private readonly string _sku = "Sku";
+    private readonly string _lastSaleDateUtc = "LastSaleDateUtc";
+    private readonly string _availableQuantity = "AvailableQuantity";
+    private readonly string _attributes = "Attributes";
+    private readonly string _name = "Name";
+    private readonly string _allName = "All Name";
+    private readonly string _Value = "Value";
+    private readonly string _itemName = "Item Name";
+    private readonly string _labels = "Labels";
+    #endregion
+
+    private readonly List<string> _labelNames = new List<string>() { "Closeout", "Discount", "MAPNoShow", "MAPShow", "NPIP" };
+
     public void EstablishConnection()
     {
-      string accessToken = "access_token";
-      string expiresIn = "expires_in";
-
       if (Secrets.TokenExpireDateTime < DateTime.Now || Secrets.TokenExpireDateTime == null)
       {
         string auth = string.Concat(Secrets.ApplicationId, ":", Secrets.SharedSecret);
@@ -31,9 +50,9 @@ namespace ChannelAdvisorLibrary
           Method = HttpMethod.Post,
           Headers = {
             { HttpRequestHeader.Authorization.ToString(), authorization },
-            { HttpRequestHeader.ContentType.ToString(), "application/x-www-form-urlencoded" },
+            { HttpRequestHeader.ContentType.ToString(), _appForm },
           },
-          Content = new StringContent($"grant_type=refresh_token&refresh_token={ Secrets.RefreshToken }", Encoding.UTF8, "application/json"),
+          Content = new StringContent($"grant_type=refresh_token&refresh_token={ Secrets.RefreshToken }", Encoding.UTF8, _appJson),
         };
 
         HttpClient client = new HttpClient();
@@ -41,8 +60,8 @@ namespace ChannelAdvisorLibrary
         HttpContent content = response.Content;
         string json = content.ReadAsStringAsync().Result;
         JObject result = JObject.Parse(json);
-        Secrets.AccessToken = result[accessToken].ToString();
-        Secrets.TokenExpireDateTime = DateTime.Now.AddSeconds(Convert.ToDouble(result[expiresIn]) - Secrets.TokenExpireBuffer);
+        Secrets.AccessToken = result[_accessToken].ToString();
+        Secrets.TokenExpireDateTime = DateTime.Now.AddSeconds(Convert.ToDouble(result[_expiresIn]) - Secrets.TokenExpireBuffer);
       }
     }
 
@@ -70,9 +89,9 @@ namespace ChannelAdvisorLibrary
         }
         JObject jObject = JObject.Parse(result);
 
-        reqUri = (string)jObject["@odata.nextLink"];
+        reqUri = (string)jObject[_odataNextLink];
 
-        foreach (JObject item in jObject["value"]) jObjects.Add(item);
+        foreach (JObject item in jObject[_value]) jObjects.Add(item);
       }
 
       return jObjects;
@@ -124,38 +143,36 @@ namespace ChannelAdvisorLibrary
 
       foreach (int profileId in profileIds)
       {
-        List<JObject> filteredByProfileId = jObjects.Where(j => j["ProfileID"].ToObject<int>() == profileId).ToList();
+        List<JObject> filteredByProfileId = jObjects.Where(j => j[_profileId].ToObject<int>() == profileId).ToList();
 
         foreach (var item in filteredByProfileId)
         {
-          var fbaQty = item["DCQuantities"].FirstOrDefault(i => i["DistributionCenterID"].ToObject<int>() == -4);
+          var fbaQty = item[_dcQuantities].FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
           NoSalesReportModel p = new NoSalesReportModel();
 
           if (profileId == Secrets.OtherProfileId)
           {
-            p = model.FirstOrDefault(m => m.Sku == item["Sku"].ToObject<string>());
+            p = model.FirstOrDefault(m => m.Sku == item[_sku].ToObject<string>());
 
             if (p != null)
             {
-              DateTime? lsd = item["LastSaleDateUtc"].ToObject<DateTime?>();
+              DateTime? lsd = item[_lastSaleDateUtc].ToObject<DateTime?>();
               p.LastSaleDateUtc = p.LastSaleDateUtc > lsd ? lsd : p.LastSaleDateUtc;
-              p.FBA += fbaQty != null ? fbaQty["AvailableQuantity"].ToObject<int>() : 0;
+              p.FBA += fbaQty != null ? fbaQty[_availableQuantity].ToObject<int>() : 0;
               continue;
             }
           }
 
           p = item.ToObject<NoSalesReportModel>();
 
-          string allName = item["Attributes"].FirstOrDefault(i => i["Name"].ToObject<string>() == "All Name")["Value"].ToObject<string>();
+          string allName = item[_attributes].FirstOrDefault(i => i[_name].ToObject<string>() == _allName)[_Value].ToObject<string>();
 
-          string itemName = item["Attributes"].FirstOrDefault(i => i["Name"].ToObject<string>() == "Item Name")["Value"].ToObject<string>();
+          string itemName = item[_attributes].FirstOrDefault(i => i[_name].ToObject<string>() == _itemName)[_Value].ToObject<string>();
 
-          List<string> labelNames = new List<string>() { "Closeout", "Discount", "MAPNoShow", "MAPShow", "NPIP" };
-
-          p.FBA = fbaQty != null ? fbaQty["AvailableQuantity"].ToObject<int>() : 0;
+          p.FBA = fbaQty != null ? fbaQty[_availableQuantity].ToObject<int>() : 0;
           p.ItemName = itemName;
-          p.AllName = allName.Replace(itemName, "");
-          p.ProductLabel = item["Labels"].FirstOrDefault(i => labelNames.Contains(i["Name"].ToObject<string>()))["Name"].ToObject<string>();
+          p.AllName = allName.Replace(itemName, string.Empty);
+          p.ProductLabel = item[_labels].FirstOrDefault(i => _labelNames.Contains(i[_name].ToObject<string>()))[_name].ToObject<string>();
 
           model.Add(p);
         }

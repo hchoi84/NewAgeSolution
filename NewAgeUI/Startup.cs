@@ -1,5 +1,6 @@
 using ChannelAdvisorLibrary;
 using EmailSenderLibrary;
+using FileReaderLibrary;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -48,6 +49,7 @@ namespace NewAgeUI
       services.AddScoped<IRackspace, RackspaceEmailSender>();
       services.AddScoped<IChannelAdvisor, ChannelAdvisor>();
       services.AddScoped<ISkuVault, SkuVault>();
+      services.AddScoped<IFileReader, FileReader>();
 
       services.AddTransient<IEmailSender, EmailSender>();
 

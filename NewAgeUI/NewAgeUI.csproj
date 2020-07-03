@@ -21,11 +21,4 @@
     <ProjectReference Include="..\SkuVaultLibrary\SkuVaultLibrary.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="ViewModels\ChannelAdvisor\" />
-    <Folder Include="Views\ChannelAdvisor\" />
-    <Folder Include="Views\FileReader\" />
-    <Folder Include="Views\SkuVault\" />
-  </ItemGroup>
-
 </Project>
