@@ -11,6 +11,7 @@ using FileReaderLibrary;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
 using NewAgeUI.Utilities;
@@ -20,7 +21,6 @@ using SkuVaultLibrary;
 
 namespace NewAgeUI.Controllers
 {
-  [AllowAnonymous]
   public class HomeController : Controller
   {
     private readonly ILogger<HomeController> _logger;
@@ -79,10 +79,7 @@ namespace NewAgeUI.Controllers
     [AcceptVerbs("Get", "Post")]
     public IActionResult ValidateDate(DateTime lastSoldDate)
     {
-      if (lastSoldDate >= DateTime.Today)
-      {
-        return Json("Date must be in the past");
-      }
+      if (lastSoldDate >= DateTime.Today) return Json("Date must be in the past");
 
       return Json(true);
     }
@@ -95,12 +92,12 @@ namespace NewAgeUI.Controllers
     [HttpPost("SetBufferByStoreQty")]
     public async Task<IActionResult> SetBufferByStoreQty(FileImportViewModel model)
     {
-      List<string> skus = await _fileReader.GetSkusFromFileAsync(model.CSVFile);
+      Dictionary<string, int> skuAndQtyFromFile = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
 
       int pageNumber = 0;
       int pageSize = 10000;
       bool hasMoreProducts;
-      Dictionary<string, int> skuAndStoreQty = new Dictionary<string, int>();
+      Dictionary<string, int> skuAndQtyForImport = new Dictionary<string, int>();
 
       do
       {
@@ -108,12 +105,9 @@ namespace NewAgeUI.Controllers
 
         List<JToken> jTokens = await _skuVault.GetInventoryByLocationAsync(pageNumber, pageSize);
 
-        Dictionary<string, int> productsWithStoreQty = _skuVault.GetStoreQty(jTokens);
-        
-        foreach (KeyValuePair<string, int> item in productsWithStoreQty)
-        {
-          skuAndStoreQty.Add(item.Key, item.Value);
-        }
+        Dictionary<string, int> skuAndQtyFromSV = _skuVault.RetrieveSkuAndQty(jTokens);
+
+        _skuVault.ProcessUniqueSkuAndQty(skuAndQtyFromSV, skuAndQtyFromFile, skuAndQtyForImport);
 
         if (jTokens.Count >= pageSize)
         {
@@ -125,9 +119,11 @@ namespace NewAgeUI.Controllers
 
       } while (hasMoreProducts);
 
-      skus.Where(sku => !skuAndStoreQty.ContainsKey(sku)).ToList().ForEach(sku => skuAndStoreQty.Add(sku, 0));
+      skuAndQtyFromFile.ToList().ForEach(sku => skuAndQtyForImport.Add(sku.Key, 0));
 
-      StringBuilder sb = _fileReader.ConvertToStoreBufferStringBuilder(skuAndStoreQty);
+      //TODO: Duplicate for CA GB
+      StringBuilder sb = _fileReader.ConvertToStoreBufferStringBuilder(skuAndQtyForImport, _channelAdvisor.GetMainName(), true);
+      sb.Append(_fileReader.ConvertToStoreBufferStringBuilder(skuAndQtyForImport, _channelAdvisor.GetOtherName(), false));
 
       HttpContext.Session.SetObject("storeBuffer", sb);
 

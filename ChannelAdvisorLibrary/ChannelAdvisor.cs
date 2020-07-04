@@ -204,6 +204,10 @@ namespace ChannelAdvisorLibrary
       return model;
     }
 
+    public string GetMainName() => Secrets.MainName;
+
+    public string GetOtherName() => Secrets.OtherName;
+
     #region Record Keeping
     //private void ConvertToModel(JObject jObject, List<ProductModel> products)
     //{

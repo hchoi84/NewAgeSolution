@@ -7,7 +7,7 @@ namespace FileReaderLibrary
 {
   public interface IFileReader
   {
-    Task<List<string>> GetSkusFromFileAsync(IFormFile file);
-    StringBuilder ConvertToStoreBufferStringBuilder(Dictionary<string, int> skusAndStoreQty);
+    Task<Dictionary<string, int>> RetrieveSkuAndQty(IFormFile file);
+    StringBuilder ConvertToStoreBufferStringBuilder(Dictionary<string, int> skusAndStoreQty, string channelName, bool includeHeader);
   }
 }

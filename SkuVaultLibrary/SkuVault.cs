@@ -22,18 +22,28 @@ namespace SkuVaultLibrary
     private readonly string _items = "Items";
     #endregion
 
-    private async Task<JObject> GetTokensAsync()
+    public SkuVault()
     {
-      string reqUri = "https://app.skuvault.com/api/gettokens";
+      GetTokensAsync().Wait();
+    }
 
-      string body = JsonConvert.SerializeObject(
-        new { Secrets.Email, Secrets.Password });
+    private async Task GetTokensAsync()
+    {
+      if (string.IsNullOrWhiteSpace(Secrets.TenantToken) || 
+        string.IsNullOrWhiteSpace(Secrets.UserToken))
+      {
+        string reqUri = "https://app.skuvault.com/api/gettokens";
 
-      StringContent content = new StringContent(body, Encoding.UTF8, _appjson);
+        string body = JsonConvert.SerializeObject(
+          new { Secrets.Email, Secrets.Password });
 
-      JObject tokens = await GetDataAsync(reqUri, content);
+        StringContent content = new StringContent(body, Encoding.UTF8, _appjson);
 
-      return tokens;
+        JObject tokens = await GetDataAsync(reqUri, content);
+
+        Secrets.TenantToken = tokens[_tenantToken].ToString();
+        Secrets.UserToken = tokens[_userToken].ToString();
+      }
     }
 
     public async Task<JObject> GetDataAsync(string reqUri, StringContent content)
@@ -57,7 +67,6 @@ namespace SkuVaultLibrary
     {
       string _tenantToken = this._tenantToken;
       string _userToken = this._userToken;
-      JObject tokens = await GetTokensAsync();
 
       string reqUri = "https://app.skuvault.com/api/inventory/getInventoryByLocation";
 
@@ -68,8 +77,8 @@ namespace SkuVaultLibrary
             PageNumber = pageNumber,
             PageSize = pageSize,
             //ProductSKUs = new[] { "YOA2071_02", "ANN0583_004" },
-            TenantToken = tokens[_tenantToken],
-            UserToken = tokens[_userToken]
+            Secrets.TenantToken,
+            Secrets.UserToken,
           });
 
       StringContent content = new StringContent(body, Encoding.UTF8, _appjson);
@@ -81,7 +90,7 @@ namespace SkuVaultLibrary
       return jTokens;
     }
 
-    public Dictionary<string, int> GetStoreQty(List<JToken> jTokens)
+    public Dictionary<string, int> RetrieveSkuAndQty(List<JToken> jTokens)
     {
       Dictionary<string, int> skuAndStoreQty = new Dictionary<string, int>();
 
@@ -101,6 +110,25 @@ namespace SkuVaultLibrary
       }
 
       return skuAndStoreQty;
+    }
+
+    public void ProcessUniqueSkuAndQty(Dictionary<string, int> skuAndQtyFromSV, Dictionary<string, int> skuAndQtyFromFile, Dictionary<string, int> skuAndQtyForImport)
+    {
+      foreach (KeyValuePair<string, int> item in skuAndQtyFromSV)
+      {
+        if (skuAndQtyFromFile.Contains(item))
+        {
+          skuAndQtyFromFile.Remove(item.Key);
+          continue;
+        }
+
+        if (skuAndQtyFromFile.ContainsKey(item.Key))
+        {
+          skuAndQtyFromFile.Remove(item.Key);
+        }
+
+        skuAndQtyForImport.Add(item.Key, item.Value);
+      }
     }
   }
 }

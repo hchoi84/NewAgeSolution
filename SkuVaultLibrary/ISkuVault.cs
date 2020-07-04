@@ -9,6 +9,7 @@ namespace SkuVaultLibrary
   {
     Task<JObject> GetDataAsync(string reqUri, StringContent content);
     Task<List<JToken>> GetInventoryByLocationAsync(int pageNumber, int pageSize);
-    Dictionary<string, int> GetStoreQty(List<JToken> jTokens);
+    Dictionary<string, int> RetrieveSkuAndQty(List<JToken> jTokens);
+    void ProcessUniqueSkuAndQty(Dictionary<string, int> skuAndQtyFromSV, Dictionary<string, int> skuAndQtyFromFile, Dictionary<string, int> skuAndQtyForImport);
   }
 }
