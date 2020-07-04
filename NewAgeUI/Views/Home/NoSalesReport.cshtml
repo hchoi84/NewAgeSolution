@@ -5,14 +5,50 @@
 
 <form asp-action="NoSalesReport" method="post">
   <div class="form-group row">
-    <label asp-for="LastSoldDate" class="col-sm-2 col-form-label"></label>
-    <div class="col-sm-10">
+    <label asp-for="LastSoldDate" class="col-sm-3 col-form-label"></label>
+    <div class="col-sm-5">
       <input asp-for="LastSoldDate" class="form-control-plaintext">
     </div>
     <span asp-validation-for="LastSoldDate" class="text-danger"></span>
   </div>
   <button type="submit" class="btn btn-primary">Generate</button>
 </form>
+
+<div class="accordion mt-3" id="information">
+  <div class="card">
+    <div class="card-header" id="instruction">
+      <h2 class="mb-0">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+          Instruction
+        </button>
+      </h2>
+    </div>
+
+    <div id="collapseOne" class="collapse" aria-labelledby="instruction" data-parent="#information">
+      <div class="card-body">
+        <ol>
+          <li>After clicking the "Generate" button, wait... as long as the windows tab is spinning, it's processing. It can take several minutes</li>
+          <li>Once it's done processing, the result page will display Parent information</li>
+          <li>Click on the Parent information to expand Children</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" id="explanation">
+      <h2 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+          Explanation
+        </button>
+      </h2>
+    </div>
+    <div id="collapseTwo" class="collapse" aria-labelledby="explanation" data-parent="#information">
+      <div class="card-body">
+        Pending
+      </div>
+    </div>
+  </div>
+</div>
 
 @section Scripts {
   <partial name="_ValidationScriptsPartial" />

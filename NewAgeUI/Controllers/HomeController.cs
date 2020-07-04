@@ -37,7 +37,6 @@ namespace NewAgeUI.Controllers
     }
 
     [HttpGet("")]
-    //TODO: Add links to tasks
     public IActionResult Index() => View();
 
     #region NoSalesReport
@@ -67,6 +66,7 @@ namespace NewAgeUI.Controllers
     [HttpGet("NoSalesReportResult")]
     //TODO: Implement download button
     //TODO: Notify user once they log out, the data will no longer be available
+    //TODO: Add high level overview of what the system is doing
     public IActionResult NoSalesReportResult()
     {
       List<NoSalesReportModel> model = HttpContext.Session.GetObject<List<NoSalesReportModel>>("model");
