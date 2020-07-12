@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using NewAgeUI.Models;
 using NewAgeUI.Utilities;
 using SkuVaultLibrary;
+using System;
 
 namespace NewAgeUI
 {
@@ -28,6 +29,14 @@ namespace NewAgeUI
 
     public void ConfigureServices(IServiceCollection services)
     {
+      string server = Environment.GetEnvironmentVariable("DBHOST") ?? "localhost";
+      string port = Environment.GetEnvironmentVariable("DBPORT") ?? "3306";
+      string password = Environment.GetEnvironmentVariable("DBPASSWORD") ?? "root";
+
+      //services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql(Configuration.GetConnectionString("AuthDbConnection")));
+
+      services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql($"Server={ server }; Uid=root; Pwd={ password }; Port={ port }; Database=NewAgeSolution"));
+
       services.AddControllersWithViews(options =>
       {
         var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
@@ -53,8 +62,6 @@ namespace NewAgeUI
 
       services.AddTransient<IEmailSender, EmailSender>();
 
-      services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql(Configuration.GetConnectionString("AuthDbConnection")));
-
       services.AddSession();
 
       services.AddAuthorization(options =>
@@ -64,7 +71,7 @@ namespace NewAgeUI
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, NewAgeDbContext context)
     {
       if (env.IsDevelopment())
       {
@@ -76,7 +83,7 @@ namespace NewAgeUI
         // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
         app.UseHsts();
       }
-      app.UseHttpsRedirection();
+      //app.UseHttpsRedirection();
       app.UseStaticFiles();
 
       app.UseRouting();
@@ -85,6 +92,8 @@ namespace NewAgeUI
       app.UseAuthorization();
 
       app.UseSession();
+
+      context.Database.Migrate();
 
       app.UseEndpoints(endpoints =>
       {
