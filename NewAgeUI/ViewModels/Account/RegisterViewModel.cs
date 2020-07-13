@@ -31,7 +31,7 @@ namespace NewAgeUI.ViewModels
     [Required]
     [Display(Name = "Password")]
     [DataType(DataType.Password)]
-    [MinLength(6, ErrorMessage = "{0} must be at least {1} characters long and contain lower, upper, digit, and non-alphaneumeric")]
+    [MinLength(6, ErrorMessage = "{0} must be at least {1} characters long and contain lower, upper, digit, and special character")]
     public string Password { get; set; }
 
     [Required]

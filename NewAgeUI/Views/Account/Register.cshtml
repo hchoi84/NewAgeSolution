@@ -38,6 +38,9 @@
     <div class="form-group col-md-6">
       <label asp-for="Password"></label>
       <input asp-for="Password" class="form-control" placeholder="Email">
+      <span class="form-text text-primary small">
+        Min 6 characters. Must include lower, upper, number, and special character
+      </span>
       <span asp-validation-for="Password" class="text-danger"></span>
     </div>
     <div class="form-group col-md-6">

@@ -36,7 +36,17 @@ namespace NewAgeUI.Models
 
       IdentityResult identityResult = await _userManager.CreateAsync(employee, registerViewModel.Password);
 
-      if (!identityResult.Succeeded) return (null, "Failed to create User");
+      if (!identityResult.Succeeded)
+      {
+        List<string> errorMsg = new List<string>();
+
+        foreach (var error in identityResult.Errors)
+        {
+          errorMsg.Add(error.Description);
+        }
+
+        return (null, string.Join("; ", errorMsg));
+      }
 
       if (isFirstUser)
         newClaim = new Claim(ClaimTypeEnum.Admin.ToString(), "true");

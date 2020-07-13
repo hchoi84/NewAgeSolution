@@ -93,7 +93,7 @@ namespace NewAgeUI
 
       app.UseSession();
 
-      context.Database.Migrate();
+      //context.Database.Migrate();
 
       app.UseEndpoints(endpoints =>
       {
