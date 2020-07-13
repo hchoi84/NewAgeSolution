@@ -11,6 +11,9 @@
 *.sln.docstates
 */appsettings.json
 */appsettings.Development.json
+*.env
+*.dockerignore
+*.yml
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -29,7 +32,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ss]ecurities/
-Migrations/
+mysql/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

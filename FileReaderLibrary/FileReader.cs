@@ -61,7 +61,7 @@ namespace FileReaderLibrary
 
       foreach (var product in skusAndStoreQty)
       {
-        string bufferQuantityMode = product.Value == 0 ? "Off" : "Subtract";
+        string bufferQuantityMode = product.Value == 0 ? "Off" : "Subtraction";
 
         sb.AppendLine($"{ product.Key },,{ channelName },Off,Off,{ bufferQuantityMode },{ product.Value },Off,20000,Off,0");
       }
