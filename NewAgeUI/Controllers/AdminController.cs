@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using EmailSenderLibrary;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MimeKit;
 using NewAgeUI.Models;
-using NewAgeUI.Utilities;
 using NewAgeUI.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -20,13 +21,13 @@ namespace NewAgeUI.Controllers
   {
     private readonly UserManager<Employee> _userManager;
     private readonly ILogger<AdminController> _logger;
-    private readonly IRackspace _rackspace;
+    private readonly IEmailSender _emailSender;
 
-    public AdminController(UserManager<Employee> userManager, ILogger<AdminController> logger, IRackspace rackspace)
+    public AdminController(UserManager<Employee> userManager, ILogger<AdminController> logger, IEmailSender emailSender)
     {
       _userManager = userManager;
       _logger = logger;
-      _rackspace = rackspace;
+      _emailSender = emailSender;
     }
 
     [HttpGet("")]
@@ -152,7 +153,9 @@ namespace NewAgeUI.Controllers
 
       try
       {
-        _rackspace.SendEmail(employee, subject, body);
+        MimeMessage message = _emailSender.GenerateContent(employee.FullName, employee.Email, subject, body);
+
+        _emailSender.SendEmail(message);
       }
       catch (Exception e)
       {

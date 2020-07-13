@@ -55,7 +55,6 @@ namespace NewAgeUI
       });
 
       services.AddScoped<IEmployee, SqlEmployee>();
-      services.AddScoped<IRackspace, RackspaceEmailSender>();
       services.AddScoped<IChannelAdvisor, ChannelAdvisor>();
       services.AddScoped<ISkuVault, SkuVault>();
       services.AddScoped<IFileReader, FileReader>();

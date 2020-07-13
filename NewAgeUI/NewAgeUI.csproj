@@ -23,4 +23,8 @@
     <ProjectReference Include="..\SkuVaultLibrary\SkuVaultLibrary.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Securities\" />
+  </ItemGroup>
+
 </Project>

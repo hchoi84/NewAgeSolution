@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Threading.Tasks;
+using EmailSenderLibrary;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using MimeKit;
 using NewAgeUI.Models;
-using NewAgeUI.Securities;
-using NewAgeUI.Utilities;
 using NewAgeUI.ViewModels;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
@@ -15,20 +15,22 @@ namespace NewAgeUI.Controllers
   [Route("[Controller]")]
   public class AccountController : Controller
   {
+    #region Properties
     private readonly UserManager<Employee> _userManager;
     private readonly SignInManager<Employee> _signInManager;
     private readonly IEmployee _employee;
     private readonly ILogger<AccountController> _logger;
-    private readonly IRackspace _rackspace;
+    private readonly IEmailSender _emailSender;
     private readonly string _websiteName = "NewAge";
+    #endregion
 
-    public AccountController(UserManager<Employee> userManager, SignInManager<Employee> signInManager, IEmployee employee, ILogger<AccountController> logger, IRackspace rackspace)
+    public AccountController(UserManager<Employee> userManager, SignInManager<Employee> signInManager, IEmployee employee, ILogger<AccountController> logger, IEmailSender emailSender)
     {
       _userManager = userManager;
       _signInManager = signInManager;
       _employee = employee;
       _logger = logger;
-      _rackspace = rackspace;
+      _emailSender = emailSender;
     }
 
     #region Register
@@ -42,11 +44,11 @@ namespace NewAgeUI.Controllers
     {
       if (!ModelState.IsValid) return View();
 
-      (Employee employee, string message) = await _employee.RegisterUserAsync(registerViewModel);
+      (Employee employee, string errorMessage) = await _employee.RegisterUserAsync(registerViewModel);
 
       if (employee == null)
       {
-        ModelState.AddModelError(string.Empty, message);
+        ModelState.AddModelError(string.Empty, errorMessage);
 
         return View();
       }
@@ -70,7 +72,9 @@ namespace NewAgeUI.Controllers
 
       try
       {
-        _rackspace.SendEmail(employee, subject, body);
+        MimeMessage message = _emailSender.GenerateContent(employee.FullName, employee.Email, subject, body);
+
+        _emailSender.SendEmail(message);
       }
       catch (Exception e)
       {
@@ -89,7 +93,7 @@ namespace NewAgeUI.Controllers
     [AcceptVerbs("GET", "POST")]
     public async Task<IActionResult> ValidateEmailAddress(string emailAddress)
     {
-      string validDomain = $"{ RackspaceSecret.Domain }";
+      string validDomain = $"{ _emailSender.GetDoamin() }";
       string userEnteredDomain = emailAddress.Split('@')[1].ToLower();
 
       if (userEnteredDomain != validDomain)
@@ -210,7 +214,9 @@ namespace NewAgeUI.Controllers
 
       try
       {
-        _rackspace.SendEmail(employee, subject, body);
+        MimeMessage message = _emailSender.GenerateContent(employee.FullName, employee.Email, subject, body);
+
+        _emailSender.SendEmail(message);
       }
       catch (Exception e)
       {
@@ -354,7 +360,9 @@ namespace NewAgeUI.Controllers
 
       try
       {
-        _rackspace.SendEmail(employee, subject, body);
+        MimeMessage message = _emailSender.GenerateContent(employee.FullName, employee.Email, subject, body);
+
+        _emailSender.SendEmail(message);
       }
       catch (Exception e)
       {
