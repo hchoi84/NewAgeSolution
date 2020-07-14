@@ -18,33 +18,54 @@
   <div class="card">
     <div class="card-header" id="instruction">
       <h2 class="mb-0">
-        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#instruction" aria-expanded="false" aria-controls="instruction">
           Instruction
         </button>
       </h2>
     </div>
-
-    <div id="collapseOne" class="collapse" aria-labelledby="instruction" data-parent="#information">
+    <div id="instruction" class="collapse" aria-labelledby="instruction" data-parent="#information">
       <div class="card-body">
         <ol>
-          <li>After clicking the "Generate" button, wait... as long as the windows tab is spinning, it's processing. It can take several minutes</li>
-          <li>Once it's done processing, the result page will display Parent information</li>
-          <li>Click on the Parent information to expand Children</li>
+          <li>Click "Generate"</li>
+          <li>Wait... as long as the windows tab is spinning, it's processing. It can take several minutes</li>
+          <li>The result file will be downloaded automatically once it's done</li>
+          <li>For information on what the system is doing, please refer to the Explanation section</li>
         </ol>
       </div>
     </div>
   </div>
+
   <div class="card">
     <div class="card-header" id="explanation">
       <h2 class="mb-0">
-        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#explanation" aria-expanded="false" aria-controls="explanation">
           Explanation
         </button>
       </h2>
     </div>
-    <div id="collapseTwo" class="collapse" aria-labelledby="explanation" data-parent="#information">
+    <div id="explanation" class="collapse" aria-labelledby="explanation" data-parent="#information">
       <div class="card-body">
-        Pending
+        <ol>
+          <li>Baesd on the input date, the system first retrieves products where last sale date was before the entered date</li>
+          <li>Based on the previous result, it retrieves the family of each product</li>
+          <li>In summary, within the family, at least one child meets the criteria</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="instruction">
+      <h2 class="mb-0">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#objective" aria-expanded="false" aria-controls="objective">
+          Objective
+        </button>
+      </h2>
+    </div>
+    <div id="objective" class="collapse" aria-labelledby="action" data-parent="#information">
+      <div class="card-body">
+        <p>The main objective is to reduce the number of unused products in the system as it causes inefficiency in overall productivity due to export duration, processing lag due to the large data size, and the employees lack of Excel knowledge.</p>
+        <p>Properly determining the correct action will depend on the person in charge. Overall, it will require understanding of sell through rate, comminucation with the purchasers, carry over products, etc.</p>
       </div>
     </div>
   </div>

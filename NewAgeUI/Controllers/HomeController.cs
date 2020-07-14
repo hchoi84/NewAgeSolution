@@ -41,13 +41,12 @@ namespace NewAgeUI.Controllers
 
     #region NoSalesReport
     [HttpGet("NoSalesReport")]
-    //TODO: Add instruction and how high level of what the system does as a collapsable
     public IActionResult NoSalesReport() => View();
 
     [HttpPost("NoSalesReport")]
     public async Task<IActionResult> NoSalesReport(DateTime lastSoldDate)
     {
-      string filter = $"LastSaleDateUtc lt { lastSoldDate.ToString("yyyy-MM-dd") }";
+      string filter = $"LastSaleDateUtc lt {lastSoldDate:yyyy-MM-dd}";
       string expand = "";
       string select = "ParentProductID";
       List<string> distinctParentIds = await _channelAdvisor.GetDistinctParentIdsAsync(filter, expand, select);
@@ -58,22 +57,20 @@ namespace NewAgeUI.Controllers
 
       model = _channelAdvisor.AddParentInfo(model).OrderBy(m => m.Sku).ToList();
 
-      HttpContext.Session.SetObject("model", model);
+      List<string> lines = new List<string>();
 
-      return RedirectToAction(nameof(NoSalesReportResult));
-    }
+      foreach (var product in model)
+      {
+        string line = $"{ product.Sku }, { product.UPC }, {product.CreateDateUtc:yyyy-MM-dd}, { product.AllName }, {product.LastSaleDateUtc:yyyy-MM-dd}, { product.ProductLabel }, { product.TotalAvailableQuantity } / { product.FBA }";
 
-    [HttpGet("NoSalesReportResult")]
-    //TODO: Implement download button
-    //TODO: Notify user once they log out, the data will no longer be available
-    //TODO: Add high level overview of what the system is doing
-    public IActionResult NoSalesReportResult()
-    {
-      List<NoSalesReportModel> model = HttpContext.Session.GetObject<List<NoSalesReportModel>>("model");
+        lines.Add(line);
+      }
 
-      HttpContext.Session.Remove("model");
+      StringBuilder sb = _fileReader.ConvertToNoSalesReportStringBuilder(lines);
 
-      return View(model);
+      FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "NoSalesReport.csv");
+
+      return file;
     }
 
     [AcceptVerbs("Get", "Post")]
@@ -121,25 +118,10 @@ namespace NewAgeUI.Controllers
 
       skuAndQtyFromFile.ToList().ForEach(sku => skuAndQtyForImport.Add(sku.Key, 0));
 
-      //TODO: Duplicate for CA GB
       StringBuilder sb = _fileReader.ConvertToStoreBufferStringBuilder(skuAndQtyForImport, _channelAdvisor.GetMainName(), true);
       sb.Append(_fileReader.ConvertToStoreBufferStringBuilder(skuAndQtyForImport, _channelAdvisor.GetOtherName(), false));
 
-      HttpContext.Session.SetObject("storeBuffer", sb);
-
-      return RedirectToAction(nameof(SetBufferByStoreQty));
-    }
-
-    [HttpPost("DownloadReport")]
-    public IActionResult DownloadReport()
-    {
-      StringBuilder data = HttpContext.Session.GetObject<StringBuilder>("storeBuffer");
-
-      if (data == null) return RedirectToAction(nameof(SetBufferByStoreQty));
-
-      FileContentResult file = File(new UTF8Encoding().GetBytes(data.ToString()), "text/csv", "buffer.csv");
-
-      HttpContext.Session.Remove("storeBuffer");
+      FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "StoreBuffer.csv");
 
       return file;
     }

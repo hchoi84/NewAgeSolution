@@ -1,23 +1,71 @@
 ﻿@model FileImportViewModel
-
-@using NewAgeUI.Utilities 
-@using Microsoft.AspNetCore.Http
-@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
 @{
   ViewData["Title"] = "Set Buffer by Store Quantity";
 }
 
 <form enctype="multipart/form-data" asp-action="SetBufferByStoreQty" method="post">
   <div class="form-group">
-    <label asp-for="CSVFile">Example file input</label>
+    <label asp-for="CSVFile">SkuVault Buffer Export File</label>
     <input asp-for="CSVFile" class="form-control-file">
   </div>
   <button class="btn btn-primary">Submit</button>
 </form>
 
-@if (httpContextAccessor.HttpContext.Session.GetObject<System.Text.StringBuilder>("storeBuffer") != null)
-{
-  <form asp-action="DownloadReport" method="post">
-    <button class="btn btn-primary" type="submit">Download</button>
-  </form>
-}
+<div class="accordion mt-3" id="information">
+  <div class="card">
+    <div class="card-header" id="instruction">
+      <h2 class="mb-0">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#instruction" aria-expanded="false" aria-controls="instruction">
+          Instruction
+        </button>
+      </h2>
+    </div>
+    <div id="instruction" class="collapse" aria-labelledby="instruction" data-parent="#information">
+      <div class="card-body">
+        <ol>
+          <li>Navigate to SkuVault => Admin => Exporting => Products Quantity Buffer => Channel Account = CA Golfio => CHECK "Only show SKUs with currently enabled buffers" => Generate</li>
+          <li>Import the downloaded file</li>
+          <li>Click "Submit"</li>
+          <li>Wait... as long as the windows tab is spinning, it's processing. This process will take at least 6 minutes</li>
+          <li>The result file will be downloaded automatically once it's done</li>
+          <li>Navigate to SkuVault => Admin => Importing => Quantity Buffer Import (per SKU) by products => "Import Quantity Buffers" => Import the file that was downloaded from previous step => "Import"</li>
+          <li>For information on what the system is doing, please refer to the Explanation section</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="explanation">
+      <h2 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#explanation" aria-expanded="false" aria-controls="explanation">
+          Explanation
+        </button>
+      </h2>
+    </div>
+    <div id="explanation" class="collapse" aria-labelledby="explanation" data-parent="#information">
+      <div class="card-body">
+        <ol>
+          <li>Retrives all products that has quantity in the Store</li>
+          <li>Compares the result with currently active buffer quantity</li>
+          <li>Determines if there's no change (won't be included in the file) or it needs to be updated (new buffer quantity or 0)</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="instruction">
+      <h2 class="mb-0">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#objective" aria-expanded="false" aria-controls="objective">
+          Objective
+        </button>
+      </h2>
+    </div>
+    <div id="objective" class="collapse" aria-labelledby="action" data-parent="#information">
+      <div class="card-body">
+        <p>The main objective is to whatever quantity is in the store doesn't get sold to other marketplaces (except golfio.com).</p>
+      </div>
+    </div>
+  </div>
+</div>

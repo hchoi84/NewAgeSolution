@@ -15,14 +15,12 @@ namespace NewAgeUI.Controllers
   [Route("[Controller]")]
   public class AccountController : Controller
   {
-    #region Properties
     private readonly UserManager<Employee> _userManager;
     private readonly SignInManager<Employee> _signInManager;
     private readonly IEmployee _employee;
     private readonly ILogger<AccountController> _logger;
     private readonly IEmailSender _emailSender;
     private readonly string _websiteName = "NewAge";
-    #endregion
 
     public AccountController(UserManager<Employee> userManager, SignInManager<Employee> signInManager, IEmployee employee, ILogger<AccountController> logger, IEmailSender emailSender)
     {

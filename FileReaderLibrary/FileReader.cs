@@ -68,5 +68,15 @@ namespace FileReaderLibrary
 
       return sb;
     }
+
+    public StringBuilder ConvertToNoSalesReportStringBuilder(List<string> lines)
+    {
+      StringBuilder sb = new StringBuilder();
+
+      sb.AppendLine("SKU,UPC,Created,All Name,Last Sold Date,Label,WH/FBA Qty");
+      lines.ForEach(l => sb.AppendLine(l));
+
+      return sb;
+    }
   }
 }
