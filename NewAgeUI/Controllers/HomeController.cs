@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -89,6 +90,13 @@ namespace NewAgeUI.Controllers
     [HttpPost("SetBufferByStoreQty")]
     public async Task<IActionResult> SetBufferByStoreQty(FileImportViewModel model)
     {
+      string fileExtension = Path.GetExtension(model.CSVFile.FileName);
+      if (fileExtension != ".csv") 
+      {
+        ModelState.AddModelError("", "File must be a CSV type");
+        return View(); 
+      }
+
       Dictionary<string, int> skuAndQtyFromFile = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
 
       int pageNumber = 0;

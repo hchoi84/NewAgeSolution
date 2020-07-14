@@ -6,10 +6,10 @@
 <form asp-action="NoSalesReport" method="post">
   <div class="form-group row">
     <div class="col-auto">
-      <label asp-for="LastSoldDate" class="col-form-label"></label>
+      <label asp-for="LastSoldDate" class="col-form-label my-auto"></label>
     </div>
     <div class="col-auto">
-      <input asp-for="LastSoldDate" class="form-control-plaintext">
+      <input asp-for="LastSoldDate" class="form-control-plaintext my-auto">
       <span asp-validation-for="LastSoldDate" class="text-danger"></span>
     </div>
     <div class="col-auto">
@@ -20,14 +20,14 @@
 
 <div class="accordion mt-3" id="information">
   <div class="card">
-    <div class="card-header" id="instruction">
+    <div class="card-header" id="instructionBox">
       <h2 class="mb-0">
         <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#instruction" aria-expanded="false" aria-controls="instruction">
           Instruction
         </button>
       </h2>
     </div>
-    <div id="instruction" class="collapse" aria-labelledby="instruction" data-parent="#information">
+    <div id="instruction" class="collapse" aria-labelledby="instructionBox" data-parent="#information">
       <div class="card-body">
         <ol>
           <li>Click "Generate"</li>
@@ -40,9 +40,9 @@
   </div>
 
   <div class="card">
-    <div class="card-header" id="explanation">
+    <div class="card-header" id="explanationBox">
       <h2 class="mb-0">
-        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#explanation" aria-expanded="false" aria-controls="explanation">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#explanation" aria-expanded="false" aria-controls="explanationBox">
           Explanation
         </button>
       </h2>
@@ -59,14 +59,14 @@
   </div>
 
   <div class="card">
-    <div class="card-header" id="instruction">
+    <div class="card-header" id="objectiveBox">
       <h2 class="mb-0">
         <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#objective" aria-expanded="false" aria-controls="objective">
           Objective
         </button>
       </h2>
     </div>
-    <div id="objective" class="collapse" aria-labelledby="action" data-parent="#information">
+    <div id="objective" class="collapse" aria-labelledby="objectiveBox" data-parent="#information">
       <div class="card-body">
         <p>The main objective is to reduce the number of unused products in the system as it causes inefficiency in overall productivity due to export duration, processing lag due to the large data size, and the employees lack of Excel knowledge.</p>
         <p>Properly determining the correct action will depend on the person in charge. Overall, it will require understanding of sell through rate, comminucation with the purchasers, carry over products, etc.</p>
