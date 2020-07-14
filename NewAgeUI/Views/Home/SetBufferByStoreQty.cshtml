@@ -4,11 +4,17 @@
 }
 
 <form enctype="multipart/form-data" asp-action="SetBufferByStoreQty" method="post">
-  <div class="form-group">
-    <label asp-for="CSVFile">SkuVault Buffer Export File</label>
-    <input asp-for="CSVFile" class="form-control-file">
+  <div class="form-group row">
+    <div class="col-auto">
+      <label asp-for="CSVFile">SkuVault Buffer Export File</label>
+    </div>
+    <div class="col-auto">
+      <input asp-for="CSVFile" class="form-control-file">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary">Submit</button>
+    </div>
   </div>
-  <button class="btn btn-primary">Submit</button>
 </form>
 
 <div class="accordion mt-3" id="information">
