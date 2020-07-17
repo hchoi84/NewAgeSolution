@@ -154,6 +154,7 @@ namespace ChannelAdvisorLibrary
         foreach (var item in filteredByProfileId)
         {
           var fbaQty = item[_dcQuantities].FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
+          
           NoSalesReportModel p = new NoSalesReportModel();
 
           if (profileId == Secrets.OtherProfileId)
@@ -169,15 +170,12 @@ namespace ChannelAdvisorLibrary
             }
           }
 
-          p = item.ToObject<NoSalesReportModel>();
-
           string allName = item[_attributes].FirstOrDefault(i => i[_name].ToObject<string>() == _allName)[_Value].ToObject<string>();
 
-          string itemName = item[_attributes].FirstOrDefault(i => i[_name].ToObject<string>() == _itemName)[_Value].ToObject<string>();
-
+          p = item.ToObject<NoSalesReportModel>();
           p.FBA = fbaQty != null ? fbaQty[_availableQuantity].ToObject<int>() : 0;
-          p.ItemName = itemName;
-          p.AllName = allName.Replace(itemName, string.Empty);
+          p.ItemName = item[_attributes].FirstOrDefault(i => i[_name].ToObject<string>() == _itemName)[_Value].ToObject<string>();
+          p.AllName = allName.Replace(p.ItemName, string.Empty);
           p.ProductLabel = item[_labels].FirstOrDefault(i => _labelNames.Contains(i[_name].ToObject<string>()))[_name].ToObject<string>();
 
           model.Add(p);
@@ -233,59 +231,7 @@ namespace ChannelAdvisorLibrary
     }
 
     public string GetMainName() => Secrets.MainName;
-    public int GetMainProfileId() => Secrets.MainProfileId;
-
     public string GetOtherName() => Secrets.OtherName;
-
-    #region Record Keeping
-    //private void ConvertToModel(JObject jObject, List<ProductModel> products)
-    //{
-    //  foreach (var p in (JArray)jObject["value"])
-    //  {
-    //    ProductModel productModel = p.ToObject<ProductModel>();
-
-    //    if (p["Attributes"] != null)
-    //    {
-    //      foreach (var attribute in (JArray)p["Attributes"])
-    //      {
-    //        AttributeModel attributeModel = attribute.ToObject<AttributeModel>();
-    //        productModel.Attributes.Add(attributeModel);
-    //      }
-    //    }
-
-    //    if (p["Labels"] != null)
-    //    {
-    //      foreach (var label in (JArray)p["Labels"])
-    //      {
-    //        LabelModel labelModel = label.ToObject<LabelModel>();
-    //        productModel.Labels.Add(labelModel);
-    //      }
-    //    }
-
-    //    if (p["DCQuantities"] != null)
-    //    {
-    //      foreach (var dcQty in (JArray)p["DCQuantities"])
-    //      {
-    //        DcQuantityModel dcQuantityModel = dcQty.ToObject<DcQuantityModel>();
-    //        productModel.DCQuantities.Add(dcQuantityModel);
-    //      } 
-    //    }
-
-    //    products.Add(productModel);
-    //  }
-    //}
-
-    //public List<T> ConvertToListOf<T>(JArray jArray)
-    //{
-    //  List<T> items = new List<T>();
-
-    //  foreach (var item in jArray)
-    //  {
-    //    items.Add(item.ToObject<T>());
-    //  }
-
-    //  return items;
-    //}
-    #endregion
+    public int GetMainProfileId() => Secrets.MainProfileId;
   }
 }

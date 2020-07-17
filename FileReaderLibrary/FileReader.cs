@@ -11,7 +11,6 @@ namespace FileReaderLibrary
 {
   public class FileReader : IFileReader
   {
-    #region SetBufferByStoreQty
     public async Task<Dictionary<string, int>> RetrieveSkuAndQty(IFormFile file)
     {
       string sku = "SKU";
@@ -69,7 +68,6 @@ namespace FileReaderLibrary
 
       return sb;
     }
-    #endregion
 
     public StringBuilder GenerateStringBuilder(bool includeHeader, string header, List<string> lines)
     {
