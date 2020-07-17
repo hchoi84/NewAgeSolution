@@ -29,7 +29,7 @@ namespace SkuVaultLibrary
 
     private async Task GetTokensAsync()
     {
-      if (string.IsNullOrWhiteSpace(Secrets.TenantToken) || 
+      if (string.IsNullOrWhiteSpace(Secrets.TenantToken) ||
         string.IsNullOrWhiteSpace(Secrets.UserToken))
       {
         string reqUri = "https://app.skuvault.com/api/gettokens";
@@ -39,14 +39,14 @@ namespace SkuVaultLibrary
 
         StringContent content = new StringContent(body, Encoding.UTF8, _appjson);
 
-        JObject tokens = await GetDataAsync(reqUri, content);
+        JObject tokens = await PostDataAsync(reqUri, content);
 
         Secrets.TenantToken = tokens[_tenantToken].ToString();
         Secrets.UserToken = tokens[_userToken].ToString();
       }
     }
 
-    public async Task<JObject> GetDataAsync(string reqUri, StringContent content)
+    public async Task<JObject> PostDataAsync(string reqUri, StringContent content)
     {
       string result;
 
@@ -83,7 +83,7 @@ namespace SkuVaultLibrary
 
       StringContent content = new StringContent(body, Encoding.UTF8, _appjson);
 
-      JObject result = await GetDataAsync(reqUri, content);
+      JObject result = await PostDataAsync(reqUri, content);
 
       List<JToken> jTokens = result[_items].Select(i => i).ToList();
 
@@ -110,6 +110,43 @@ namespace SkuVaultLibrary
       }
 
       return skuAndStoreQty;
+    }
+
+    public async Task UpdateDropShip(List<string> skus, int qtyToUpdateTo)
+    {
+      List<object> items = new List<object>();
+      int count = 0;
+
+      foreach (string sku in skus)
+      {
+        items.Add(new
+        {
+          Sku = sku,
+          LocationCode = "DROPSHIP",
+          Quantity = qtyToUpdateTo,
+          WarehouseId = 4081
+        });
+
+        count++;
+
+        if (items.Count == 100 || count == skus.Count)
+        {
+          string reqUri = "https://app.skuvault.com/api/inventory/setItemQuantities";
+
+          string body = JsonConvert.SerializeObject(new
+          {
+            Items = items,
+            Secrets.TenantToken,
+            Secrets.UserToken
+          });
+
+          items.Clear();
+
+          StringContent content = new StringContent(body, Encoding.UTF8, _appjson);
+
+          await PostDataAsync(reqUri, content);
+        }
+      }
     }
 
     public void ProcessUniqueSkuAndQty(Dictionary<string, int> skuAndQtyFromSV, Dictionary<string, int> skuAndQtyFromFile, Dictionary<string, int> skuAndQtyForImport)

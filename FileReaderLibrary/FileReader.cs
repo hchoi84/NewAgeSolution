@@ -11,6 +11,7 @@ namespace FileReaderLibrary
 {
   public class FileReader : IFileReader
   {
+    #region SetBufferByStoreQty
     public async Task<Dictionary<string, int>> RetrieveSkuAndQty(IFormFile file)
     {
       string sku = "SKU";
@@ -68,12 +69,25 @@ namespace FileReaderLibrary
 
       return sb;
     }
+    #endregion
 
+    #region NoSalesReport
     public StringBuilder ConvertToNoSalesReportStringBuilder(List<string> lines)
     {
       StringBuilder sb = new StringBuilder();
 
       sb.AppendLine("SKU,UPC,Created,All Name,Last Sold Date,Label,WH/FBA Qty");
+      lines.ForEach(l => sb.AppendLine(l));
+
+      return sb;
+    }
+    #endregion
+
+    public StringBuilder ConvertToUpdateDropShipQtyReport(List<string> lines)
+    {
+      StringBuilder sb = new StringBuilder();
+
+      sb.AppendLine("SKU,InvFlag,Label,All Name,Qty");
       lines.ForEach(l => sb.AppendLine(l));
 
       return sb;

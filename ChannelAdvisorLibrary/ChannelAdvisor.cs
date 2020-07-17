@@ -18,7 +18,6 @@ namespace ChannelAdvisorLibrary
     private readonly string _appForm = "application/x-www-form-urlencoded";
     private readonly string _appJson = "application/json";
     private readonly string _odataNextLink = "@odata.nextLink";
-    private readonly string _value = "value";
     private readonly string _profileId = "ProfileID";
     private readonly string _dcQuantities = "DCQuantities";
     private readonly string _distributionCenterID = "DistributionCenterID";
@@ -87,16 +86,23 @@ namespace ChannelAdvisorLibrary
           HttpContent content = response.Content;
           result = await content.ReadAsStringAsync();
         }
+
         JObject jObject = JObject.Parse(result);
+
+        if (jObject["error"] != null)
+        {
+          throw new Exception(jObject["error"]["message"].ToString());
+        }
 
         reqUri = (string)jObject[_odataNextLink];
 
-        foreach (JObject item in jObject[_value]) jObjects.Add(item);
+        foreach (JObject item in jObject["value"]) jObjects.Add(item);
       }
 
       return jObjects;
     }
 
+    #region NoSalesReport
     public async Task<List<string>> GetDistinctParentIdsAsync(string filter, string expand, string select)
     {
       //Get products via ChannelAdvisorAPI
@@ -203,8 +209,31 @@ namespace ChannelAdvisorLibrary
 
       return model;
     }
+    #endregion
+
+    public List<UpdateDropShipReportModel> ConvertToUpdateDropShipReportModel(List<JObject> jObjects)
+    {
+      List<UpdateDropShipReportModel> models = new List<UpdateDropShipReportModel>();
+
+      foreach (var item in jObjects)
+      {
+        UpdateDropShipReportModel model = new UpdateDropShipReportModel()
+        {
+          Sku = item[_sku].ToString(),
+          InvFlag = item[_attributes].FirstOrDefault(i => i[_name].ToString() == "invflag")[_Value].ToString(),
+          Label = item[_labels].FirstOrDefault(i => _labelNames.Contains(i[_name].ToString()))[_name].ToString(),
+          AllName = item[_attributes].FirstOrDefault(i => i[_name].ToString() == _allName)[_Value].ToString(),
+          Qty = item["TotalAvailableQuantity"].ToString()
+        };
+
+        models.Add(model);
+      }
+
+      return models;
+    }
 
     public string GetMainName() => Secrets.MainName;
+    public int GetMainProfileId() => Secrets.MainProfileId;
 
     public string GetOtherName() => Secrets.OtherName;
 

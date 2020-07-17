@@ -10,5 +10,6 @@ namespace FileReaderLibrary
     Task<Dictionary<string, int>> RetrieveSkuAndQty(IFormFile file);
     StringBuilder ConvertToStoreBufferStringBuilder(Dictionary<string, int> skusAndStoreQty, string channelName, bool includeHeader);
     StringBuilder ConvertToNoSalesReportStringBuilder(List<string> lines);
+    StringBuilder ConvertToUpdateDropShipQtyReport(List<string> lines);
   }
 }

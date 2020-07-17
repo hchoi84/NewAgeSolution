@@ -135,6 +135,63 @@ namespace NewAgeUI.Controllers
     }
     #endregion
 
+    #region UpdateDropShip
+    [HttpGet("UpdateDropShip")]
+    public IActionResult UpdateDropShipTask() => View();
+
+    [HttpPost("UpdateDropShip")]
+    public async Task<IActionResult> UpdateDropShip()
+    {
+      Dictionary<string, string> filters = new Dictionary<string, string>
+      {
+        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Green') and TotalAvailableQuantity le 0", "Green" },
+        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Green') and TotalAvailableQuantity ge 15000 and TotalAvailableQuantity lt 19999", "Green" },
+        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Red') and TotalAvailableQuantity ge 15000 and TotalAvailableQuantity le 19999", "Red" }
+      };
+
+      string expand = "Attributes,Labels";
+      string select = "Sku,TotalAvailableQuantity";
+
+      List<JObject> jObjects = new List<JObject>();
+      StringBuilder sb = new StringBuilder();
+
+      foreach (var filter in filters)
+      {
+        try
+        {
+          jObjects = await _channelAdvisor.GetProductsAsync(filter.Key, expand, select);
+        }
+        catch (Exception e)
+        {
+          return Json(e.Message);
+        }
+
+        List<UpdateDropShipReportModel> products = _channelAdvisor.ConvertToUpdateDropShipReportModel(jObjects);
+
+        List<string> lines = new List<string>();
+
+        foreach (var product in products)
+        {
+          string line = $"{product.Sku},{product.InvFlag},{product.Label},{product.AllName},{product.Qty}";
+
+          lines.Add(line);
+        }
+
+        sb.Append(_fileReader.ConvertToUpdateDropShipQtyReport(lines));
+
+        int qtyToUpdateTo = filter.Value == "Green" ? 19999 : 0;
+
+        List<string> skus = products.Select(p => p.Sku).ToList();
+
+        await _skuVault.UpdateDropShip(skus, qtyToUpdateTo);
+      }
+
+      FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "StoreBuffer.csv");
+
+      return file;
+    }
+    #endregion
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
