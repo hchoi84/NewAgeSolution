@@ -71,24 +71,13 @@ namespace FileReaderLibrary
     }
     #endregion
 
-    #region NoSalesReport
-    public StringBuilder ConvertToNoSalesReportStringBuilder(List<string> lines)
+    public StringBuilder GenerateStringBuilder(bool includeHeader, string header, List<string> lines)
     {
       StringBuilder sb = new StringBuilder();
 
-      sb.AppendLine("SKU,UPC,Created,All Name,Last Sold Date,Label,WH/FBA Qty");
-      lines.ForEach(l => sb.AppendLine(l));
+      if (includeHeader) sb.AppendLine(header);
 
-      return sb;
-    }
-    #endregion
-
-    public StringBuilder ConvertToUpdateDropShipQtyReport(List<string> lines)
-    {
-      StringBuilder sb = new StringBuilder();
-
-      sb.AppendLine("SKU,InvFlag,Label,All Name,Qty");
-      lines.ForEach(l => sb.AppendLine(l));
+      lines.ForEach(l => sb.AppendLine(l)); 
 
       return sb;
     }

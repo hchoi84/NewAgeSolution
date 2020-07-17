@@ -62,12 +62,13 @@ namespace NewAgeUI.Controllers
 
       foreach (var product in model)
       {
-        string line = $"{ product.Sku }, { product.UPC }, {product.CreateDateUtc:yyyy-MM-dd}, { product.AllName }, {product.LastSaleDateUtc:yyyy-MM-dd}, { product.ProductLabel }, { product.TotalAvailableQuantity } / { product.FBA }";
+        string line = $"{ product.Sku },{ product.UPC },{product.CreateDateUtc:yyyy-MM-dd},{ product.AllName },{product.LastSaleDateUtc:yyyy-MM-dd},{ product.ProductLabel },{ product.TotalAvailableQuantity } / { product.FBA }";
 
         lines.Add(line);
       }
 
-      StringBuilder sb = _fileReader.ConvertToNoSalesReportStringBuilder(lines);
+      string header = "SKU,UPC,Created,All Name,Last Sold Date,Label,WH/FBA Qty";
+      StringBuilder sb = _fileReader.GenerateStringBuilder(true, header, lines);
 
       FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "NoSalesReport.csv");
 
@@ -91,9 +92,11 @@ namespace NewAgeUI.Controllers
     public async Task<IActionResult> SetBufferByStoreQty(FileImportViewModel model)
     {
       string fileExtension = Path.GetExtension(model.CSVFile.FileName);
+      
       if (fileExtension != ".csv") 
       {
         ModelState.AddModelError("", "File must be a CSV type");
+      
         return View(); 
       }
 
@@ -102,6 +105,7 @@ namespace NewAgeUI.Controllers
       int pageNumber = 0;
       int pageSize = 10000;
       bool hasMoreProducts;
+
       Dictionary<string, int> skuAndQtyForImport = new Dictionary<string, int>();
 
       do
@@ -142,11 +146,11 @@ namespace NewAgeUI.Controllers
     [HttpPost("UpdateDropShip")]
     public async Task<IActionResult> UpdateDropShip()
     {
-      Dictionary<string, string> filters = new Dictionary<string, string>
+      Dictionary<string, int> filters = new Dictionary<string, int>
       {
-        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Green') and TotalAvailableQuantity le 0", "Green" },
-        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Green') and TotalAvailableQuantity ge 15000 and TotalAvailableQuantity lt 19999", "Green" },
-        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Red') and TotalAvailableQuantity ge 15000 and TotalAvailableQuantity le 19999", "Red" }
+        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Green') and TotalAvailableQuantity le 0", 19999 },
+        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Green') and TotalAvailableQuantity ge 15000 and TotalAvailableQuantity lt 19999", 19999 },
+        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Red') and TotalAvailableQuantity ge 15000", 0 }
       };
 
       string expand = "Attributes,Labels";
@@ -177,13 +181,12 @@ namespace NewAgeUI.Controllers
           lines.Add(line);
         }
 
-        sb.Append(_fileReader.ConvertToUpdateDropShipQtyReport(lines));
-
-        int qtyToUpdateTo = filter.Value == "Green" ? 19999 : 0;
+        string header = "SKU,InvFlag,Label,All Name,Qty";
+        sb.Append(_fileReader.GenerateStringBuilder(sb.Length == 0, header, lines));
 
         List<string> skus = products.Select(p => p.Sku).ToList();
 
-        await _skuVault.UpdateDropShip(skus, qtyToUpdateTo);
+        await _skuVault.UpdateDropShip(skus, filter.Value);
       }
 
       FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "StoreBuffer.csv");
