@@ -112,43 +112,6 @@ namespace SkuVaultLibrary
       return skuAndStoreQty;
     }
 
-    public async Task UpdateDropShip(List<string> skus, int qtyToUpdateTo)
-    {
-      List<object> items = new List<object>();
-      int count = 0;
-
-      foreach (string sku in skus)
-      {
-        items.Add(new
-        {
-          Sku = sku,
-          LocationCode = "DROPSHIP",
-          Quantity = qtyToUpdateTo,
-          WarehouseId = 4081
-        });
-
-        count++;
-
-        if (items.Count == 100 || count == skus.Count)
-        {
-          string reqUri = "https://app.skuvault.com/api/inventory/setItemQuantities";
-
-          string body = JsonConvert.SerializeObject(new
-          {
-            Items = items,
-            Secrets.TenantToken,
-            Secrets.UserToken
-          });
-
-          items.Clear();
-
-          StringContent content = new StringContent(body, Encoding.UTF8, _appjson);
-
-          await PostDataAsync(reqUri, content);
-        }
-      }
-    }
-
     public void ProcessUniqueSkuAndQty(Dictionary<string, int> skuAndQtyFromSV, Dictionary<string, int> skuAndQtyFromFile, Dictionary<string, int> skuAndQtyForImport)
     {
       foreach (KeyValuePair<string, int> item in skuAndQtyFromSV)
@@ -165,6 +128,43 @@ namespace SkuVaultLibrary
         }
 
         skuAndQtyForImport.Add(item.Key, item.Value);
+      }
+    }
+
+    public async Task UpdateDropShip(Dictionary<string, int> skuAndNewQty)
+    {
+      List<object> items = new List<object>();
+      int count = 0;
+
+      foreach (var item in skuAndNewQty)
+      {
+        items.Add(new
+        {
+          Sku = item.Key,
+          LocationCode = "DROPSHIP",
+          Quantity = item.Value,
+          WarehouseId = 4081
+        });
+
+        count++;
+
+        if (items.Count == 100 || count == skuAndNewQty.Count)
+        {
+          string reqUri = "https://app.skuvault.com/api/inventory/setItemQuantities";
+
+          string body = JsonConvert.SerializeObject(new
+          {
+            Items = items,
+            Secrets.TenantToken,
+            Secrets.UserToken
+          });
+
+          items.Clear();
+
+          StringContent content = new StringContent(body, Encoding.UTF8, _appjson);
+
+          await PostDataAsync(reqUri, content);
+        }
       }
     }
   }

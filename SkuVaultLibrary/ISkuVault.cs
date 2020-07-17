@@ -11,7 +11,7 @@ namespace SkuVaultLibrary
     Task<List<JToken>> GetInventoryByLocationAsync(int pageNumber, int pageSize);
     Dictionary<string, int> RetrieveSkuAndQty(List<JToken> jTokens);
     void ProcessUniqueSkuAndQty(Dictionary<string, int> skuAndQtyFromSV, Dictionary<string, int> skuAndQtyFromFile, Dictionary<string, int> skuAndQtyForImport);
-    
-    Task UpdateDropShip(List<string> skus, int qtyToUpdateTo);
+
+    Task UpdateDropShip(Dictionary<string, int> skuAndNewQty);
   }
 }

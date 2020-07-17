@@ -140,56 +140,60 @@ namespace NewAgeUI.Controllers
     #endregion
 
     #region UpdateDropShip
+    //TODO: Add Instruction, Explanation, and Objective
     [HttpGet("UpdateDropShip")]
     public IActionResult UpdateDropShipTask() => View();
 
     [HttpPost("UpdateDropShip")]
     public async Task<IActionResult> UpdateDropShip()
     {
-      Dictionary<string, int> filters = new Dictionary<string, int>
+      int mainProfileId = _channelAdvisor.GetMainProfileId();
+      string filterBase = $"ProfileId eq { mainProfileId } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq";
+      string taq = "TotalAvailableQuantity";
+
+      List<string> filters = new List<string>
       {
-        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Green') and TotalAvailableQuantity le 0", 19999 },
-        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Green') and TotalAvailableQuantity ge 15000 and TotalAvailableQuantity lt 19999", 19999 },
-        { $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq 'Red') and TotalAvailableQuantity ge 15000", 0 }
+        $"{ filterBase } 'Green') and { taq } le 0",
+        $"{ filterBase } 'Green') and { taq } ge 15000 and { taq } lt 19999",
+        $"{ filterBase } 'Red') and { taq } ge 15000",
       };
-
       string expand = "Attributes,Labels";
-      string select = "Sku,TotalAvailableQuantity";
+      string select = $"Sku,{ taq }";
 
-      List<JObject> jObjects = new List<JObject>();
-      StringBuilder sb = new StringBuilder();
+      List<UpdateDropShipReportModel> products = new List<UpdateDropShipReportModel>();
 
       foreach (var filter in filters)
       {
+        List<JObject> jObjects = new List<JObject>();
+
         try
         {
-          jObjects = await _channelAdvisor.GetProductsAsync(filter.Key, expand, select);
+          jObjects = await _channelAdvisor.GetProductsAsync(filter, expand, select);
         }
         catch (Exception e)
         {
           return Json(e.Message);
         }
 
-        List<UpdateDropShipReportModel> products = _channelAdvisor.ConvertToUpdateDropShipReportModel(jObjects);
-
-        List<string> lines = new List<string>();
-
-        foreach (var product in products)
-        {
-          string line = $"{product.Sku},{product.InvFlag},{product.Label},{product.AllName},{product.Qty}";
-
-          lines.Add(line);
-        }
-
-        string header = "SKU,InvFlag,Label,All Name,Qty";
-        sb.Append(_fileReader.GenerateStringBuilder(sb.Length == 0, header, lines));
-
-        List<string> skus = products.Select(p => p.Sku).ToList();
-
-        await _skuVault.UpdateDropShip(skus, filter.Value);
+        products.AddRange(_channelAdvisor.ConvertToUpdateDropShipReportModel(jObjects));
       }
 
-      FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "StoreBuffer.csv");
+      List<string> lines = new List<string>();
+      Dictionary<string, int> skuAndNewQty = new Dictionary<string, int>();
+
+      foreach (var product in products)
+      {
+        lines.Add($"{product.Sku},{product.InvFlag},{product.Label},\"{product.AllName}\",{product.Qty}");
+
+        skuAndNewQty.Add(product.Sku, product.InvFlag == "Green" ? 19999 : 0);
+      }
+
+      string header = "SKU,InvFlag,Label,All Name,Qty";
+      StringBuilder sb = _fileReader.GenerateStringBuilder(true, header, lines);
+
+      await _skuVault.UpdateDropShip(skuAndNewQty);
+
+      FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "DropShipUpdate.csv");
 
       return file;
     }
