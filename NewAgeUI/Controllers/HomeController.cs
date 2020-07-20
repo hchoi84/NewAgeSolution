@@ -85,12 +85,12 @@ namespace NewAgeUI.Controllers
     }
     #endregion
 
-    #region SetBufferByStoreQty
-    [HttpGet("SetBufferByStoreQty")]
-    public IActionResult SetBufferByStoreQty() => View();
+    #region BufferSetter
+    [HttpGet("BufferSetter")]
+    public IActionResult BufferSetter() => View();
 
-    [HttpPost("SetBufferByStoreQty")]
-    public async Task<IActionResult> SetBufferByStoreQty(FileImportViewModel model)
+    [HttpPost("BufferSetter")]
+    public async Task<IActionResult> BufferSetter(FileImportViewModel model)
     {
       string fileExtension = Path.GetExtension(model.CSVFile.FileName);
       
@@ -140,12 +140,12 @@ namespace NewAgeUI.Controllers
     }
     #endregion
 
-    #region UpdateDropShip
-    [HttpGet("UpdateDropShip")]
-    public IActionResult UpdateDropShipTask() => View();
+    #region DropShipUpdater
+    [HttpGet("DropShipUpdater")]
+    public IActionResult DropShipUpdater() => View();
 
-    [HttpPost("UpdateDropShip")]
-    public async Task<IActionResult> UpdateDropShip()
+    [HttpPost("DropShipUpdater")]
+    public async Task<IActionResult> DropShipUpdaterBatch()
     {
       int mainProfileId = _channelAdvisor.GetMainProfileId();
       string filterBase = $"ProfileId eq { mainProfileId } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq";
@@ -199,12 +199,12 @@ namespace NewAgeUI.Controllers
     }
     #endregion
 
-    #region ZendeskTalkSummary
-    [HttpGet("ZendeskTalkSummarizer")]
-    public IActionResult ZendeskTalkSummarizer() => View();
+    #region ZDTSummarizer
+    [HttpGet("ZDTSummarizer")]
+    public IActionResult ZDTSummarizer() => View();
 
-    [HttpPost("ZendeskTalkSummarizer")]
-    public async Task<IActionResult> ZendeskTalkSummarizer(FileImportViewModel model)
+    [HttpPost("ZDTSummarizer")]
+    public async Task<IActionResult> ZDTSummarizer(FileImportViewModel model)
     {
       string fileExtension = Path.GetExtension(model.CSVFile.FileName);
 
@@ -215,9 +215,9 @@ namespace NewAgeUI.Controllers
         return View();
       }
 
-      List<ZendeskTalkCallModel> callHistory = await _fileReader.ReadZendeskTalkExportFile(model.CSVFile);
+      List<ZDTModel> callHistory = await _fileReader.ReadZendeskTalkExportFile(model.CSVFile);
 
-      List<ZendeskTalkCallSummaryModel> summary = _fileReader.SummarizeCallHistory(callHistory);
+      List<ZDTSummaryModel> summary = _fileReader.SummarizeCallHistory(callHistory);
 
       List<string> lines = summary.Select(i => $"{ i.Date },{ i.Category },{ i.Count },{ i.AvgWaitMin },{ i.AvgTalkMin }").ToList();
 

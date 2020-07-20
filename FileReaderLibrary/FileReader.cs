@@ -82,7 +82,7 @@ namespace FileReaderLibrary
     }
 
     #region ZendeskCallSummary
-    public async Task<List<ZendeskTalkCallModel>> ReadZendeskTalkExportFile(IFormFile file)
+    public async Task<List<ZDTModel>> ReadZendeskTalkExportFile(IFormFile file)
     {
       List<string> _headerNames = new List<string>()
       {
@@ -105,7 +105,7 @@ namespace FileReaderLibrary
         _headerIndexes.Add(index);
       }
 
-      List<ZendeskTalkCallModel> callHistory = new List<ZendeskTalkCallModel>();
+      List<ZDTModel> callHistory = new List<ZDTModel>();
 
       foreach (string line in lines.Skip(1))
       {
@@ -113,7 +113,7 @@ namespace FileReaderLibrary
         parser.SetDelimiters(",");
         string[] rawFields = parser.ReadFields();
 
-        ZendeskTalkCallModel call = new ZendeskTalkCallModel();
+        ZDTModel call = new ZDTModel();
 
         call.DateTime = DateTime.Parse(rawFields[_headerIndexes[0]]).Date;
         call.Category = string.IsNullOrWhiteSpace(rawFields[_headerIndexes[1]]) ? rawFields[_headerIndexes[2]] : rawFields[_headerIndexes[1]];
@@ -126,21 +126,21 @@ namespace FileReaderLibrary
       return callHistory;
     }
 
-    public List<ZendeskTalkCallSummaryModel> SummarizeCallHistory(List<ZendeskTalkCallModel> model)
+    public List<ZDTSummaryModel> SummarizeCallHistory(List<ZDTModel> model)
     {
-      List<IGrouping<DateTime, ZendeskTalkCallModel>> groupedByDate = model.GroupBy(c => c.DateTime).ToList();
+      List<IGrouping<DateTime, ZDTModel>> groupedByDate = model.GroupBy(c => c.DateTime).ToList();
 
-      List<ZendeskTalkCallSummaryModel> callSummaries = new List<ZendeskTalkCallSummaryModel>();
+      List<ZDTSummaryModel> callSummaries = new List<ZDTSummaryModel>();
 
       foreach (var item in groupedByDate)
       {
         var groupedByCategory = item.GroupBy(i => i.Category).ToList();
 
-        List<ZendeskTalkCallSummaryModel> callSummaryByCategory = new List<ZendeskTalkCallSummaryModel>();
+        List<ZDTSummaryModel> callSummaryByCategory = new List<ZDTSummaryModel>();
 
         foreach (var g in groupedByCategory)
         {
-          ZendeskTalkCallSummaryModel summaryByCategory = new ZendeskTalkCallSummaryModel
+          ZDTSummaryModel summaryByCategory = new ZDTSummaryModel
           {
             Date = item.Key.Date,
             Category = g.Key,
@@ -154,7 +154,7 @@ namespace FileReaderLibrary
         }
         callSummaryByCategory.OrderBy(c => c.Category).ToList();
 
-        ZendeskTalkCallSummaryModel summaryByDate = new ZendeskTalkCallSummaryModel
+        ZDTSummaryModel summaryByDate = new ZDTSummaryModel
         {
           Date = item.Key.Date,
           Category = "Total",

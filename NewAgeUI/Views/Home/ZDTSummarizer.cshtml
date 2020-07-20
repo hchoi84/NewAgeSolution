@@ -1,12 +1,12 @@
 ﻿@model FileImportViewModel
 @{
-  ViewData["Title"] = "Set Buffer by Store Quantity";
+  ViewData["Title"] = "Zendesk Talk Summarizer";
 }
 
-<form enctype="multipart/form-data" asp-action="SetBufferByStoreQty" method="post">
+<form enctype="multipart/form-data" asp-action="ZDTSummarizer" method="post">
   <div class="form-group row">
     <div class="col-auto my-auto">
-      <label class="my-auto" asp-for="CSVFile">SkuVault Buffer Export File</label>
+      <label class="my-auto" asp-for="CSVFile">Zendesk Talk Export File</label>
     </div>
     <div class="col-auto my-auto">
       <input asp-for="CSVFile" class="form-control-file my-auto">
@@ -17,7 +17,7 @@
   </div>
   @Html.ValidationSummary(true, "", new { @class = "text-danger" })
   <span class="form-text text-info small">
-    Ensure file type is CSV and has the following first 4 headers: Code, SKU,	Channel Name,	Do not send quantity for this SKU
+    Ensure file type is CSV and has the following first 4 headers: ID, Ticket ID, Date/Time, and From.
   </span>
 </form>
 
@@ -57,9 +57,8 @@
     <div id="explanation" class="collapse" aria-labelledby="explanationBox" data-parent="#information">
       <div class="card-body">
         <ol>
-          <li>Retrives all products that has quantity in the Store</li>
-          <li>Compares the result with currently active buffer quantity</li>
-          <li>Determines if there's no change (won't be included in the file) or it needs to be updated (new buffer quantity or 0)</li>
+          <li>Utilizes the 5 necessary fields (Date/Time, Agent, Call Status, Wait Time, and Minutes) from the exported file to create a summary</li>
+          <li>From the initial Zendesk Talk Export file, Agent and Call Status is combined into one column called "Category" and Wait Time is converted from seconds to minutes for consistency</li>
         </ol>
       </div>
     </div>
@@ -75,7 +74,7 @@
     </div>
     <div id="objective" class="collapse" aria-labelledby="objectiveBox" data-parent="#information">
       <div class="card-body">
-        <p>The main objective is to prevent store quantity from being sold at other marketplaces (except golfio.com)</p>
+        <p>The exact purpose of this task is unknown as it was a request by the head. The assumption is that this report will be used to determine the departments efficiency</p>
       </div>
     </div>
   </div>

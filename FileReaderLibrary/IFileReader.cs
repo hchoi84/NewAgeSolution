@@ -11,7 +11,7 @@ namespace FileReaderLibrary
     Task<Dictionary<string, int>> RetrieveSkuAndQty(IFormFile file);
     StringBuilder ConvertToStoreBufferStringBuilder(Dictionary<string, int> skusAndStoreQty, string channelName, bool includeHeader);
     StringBuilder GenerateStringBuilder(bool includeHeader, string header, List<string> lines);
-    Task<List<ZendeskTalkCallModel>> ReadZendeskTalkExportFile(IFormFile file);
-    List<ZendeskTalkCallSummaryModel> SummarizeCallHistory(List<ZendeskTalkCallModel> model);
+    Task<List<ZDTModel>> ReadZendeskTalkExportFile(IFormFile file);
+    List<ZDTSummaryModel> SummarizeCallHistory(List<ZDTModel> model);
   }
 }

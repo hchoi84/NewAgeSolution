@@ -2,7 +2,7 @@
 
 namespace FileReaderLibrary.Models
 {
-  public class ZendeskTalkCallModel
+  public class ZDTModel
   {
     public DateTime DateTime { get; set; }
     public string Category { get; set; }
