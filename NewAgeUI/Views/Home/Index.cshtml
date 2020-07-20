@@ -1,7 +1,19 @@
-﻿@{
+﻿@using Microsoft.AspNetCore.Authorization
+
+@inject IAuthorizationService AuthorizationService 
+
+@{
   ViewData["Title"] = "Home Page";
 }
 
-<a class="btn btn-primary btn-block" asp-action="NoSalesReport">No Sales Report</a>
+
+@if ((await AuthorizationService.AuthorizeAsync(User, "NoSale")).Succeeded)
+{
+  <a class="btn btn-primary btn-block" asp-action="NoSalesReport">No Sales Report</a>
+}
+
+<a class="btn btn-primary btn-block" asp-action="ZendeskTalkSummarizer">ZendeskTalk Summarizer</a>
+
 <a class="btn btn-primary btn-block" asp-action="SetBufferByStoreQty">Buffer By Store Qty</a>
+
 <a class="btn btn-primary btn-block" asp-action="UpdateDropShipTask">Update DropShip</a>

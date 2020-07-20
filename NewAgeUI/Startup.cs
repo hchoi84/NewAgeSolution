@@ -65,7 +65,14 @@ namespace NewAgeUI
 
       services.AddAuthorization(options =>
       {
-        options.AddPolicy("Admin", policy => policy.RequireClaim(ClaimTypeEnum.Admin.ToString(), "true"));
+        options.AddPolicy("Admin", policy => policy
+        .RequireClaim(ClaimTypeEnum.Admin.ToString(), "true"));
+
+        options.AddPolicy("NoSale", policy =>
+        policy.RequireAssertion(context =>
+        context.User.HasClaim(c =>
+        (c.Type == ClaimTypeEnum.Admin.ToString() && c.Value == "true") ||
+        (c.Type == ClaimTypeEnum.NoSale.ToString() && c.Value == "true"))));
       });
     }
 

@@ -1,0 +1,81 @@
+﻿@model FileImportViewModel
+@{
+  ViewData["Title"] = "Zendesk Talk Summarizer";
+}
+
+<form enctype="multipart/form-data" asp-action="ZendeskTalkSummarizer" method="post">
+  <div class="form-group row">
+    <div class="col-auto my-auto">
+      <label class="my-auto" asp-for="CSVFile">Zendesk Talk Export File</label>
+    </div>
+    <div class="col-auto my-auto">
+      <input asp-for="CSVFile" class="form-control-file my-auto">
+    </div>
+    <div class="col-auto my-auto">
+      <button class="btn btn-primary my-auto">Submit</button>
+    </div>
+  </div>
+  @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+  <span class="form-text text-info small">
+    Ensure file type is CSV and has the following first 4 headers: ID, Ticket ID, Date/Time, and From.
+  </span>
+</form>
+
+<div class="accordion mt-3" id="information">
+  <div class="card">
+    <div class="card-header" id="instructionBox">
+      <h2 class="mb-0">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#instruction" aria-expanded="false" aria-controls="instruction">
+          Instruction
+        </button>
+      </h2>
+    </div>
+    <div id="instruction" class="collapse" aria-labelledby="instructionBox" data-parent="#information">
+      <div class="card-body">
+        <ol>
+          <li>Navigate to SkuVault => Admin => Exporting => Products Quantity Buffer => Channel Account = CA Golfio => CHECK "Only show SKUs with currently enabled buffers" => Generate</li>
+          <li>Import the downloaded file</li>
+          <li>Click "Submit"</li>
+          <li>Wait... as long as the windows tab is spinning, it's processing. This process will take at least 6 minutes</li>
+          <li>The result file will be downloaded automatically once it's done</li>
+          <li><b>Double check to make sure the file is correct</b></li>
+          <li>Navigate to SkuVault => Admin => Importing => Quantity Buffer Import (per SKU) by products => "Import Quantity Buffers" => Import the file that was downloaded from previous step => "Import"</li>
+          <li>For information on what the system is doing, please refer to the Explanation section</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="explanationBox">
+      <h2 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#explanation" aria-expanded="false" aria-controls="explanation">
+          Explanation
+        </button>
+      </h2>
+    </div>
+    <div id="explanation" class="collapse" aria-labelledby="explanationBox" data-parent="#information">
+      <div class="card-body">
+        <ol>
+          <li>Utilizes the 5 necessary fields (Date/Time, Agent, Call Status, Wait Time, and Minutes) from the exported file to create a summary</li>
+          <li>From the initial Zendesk Talk Export file, Agent and Call Status is combined into one column called "Category" and Wait Time is converted from seconds to minutes for consistency</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="objectiveBox">
+      <h2 class="mb-0">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#objective" aria-expanded="false" aria-controls="objective">
+          Objective
+        </button>
+      </h2>
+    </div>
+    <div id="objective" class="collapse" aria-labelledby="objectiveBox" data-parent="#information">
+      <div class="card-body">
+        <p>The exact purpose of this task is unknown as it was a request by the head. The assumption is that this report will be used to determine the departments efficiency</p>
+      </div>
+    </div>
+  </div>
+</div>

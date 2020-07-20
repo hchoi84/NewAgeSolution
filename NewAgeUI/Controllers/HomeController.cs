@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using ChannelAdvisorLibrary;
 using ChannelAdvisorLibrary.Models;
 using FileReaderLibrary;
+using FileReaderLibrary.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -140,7 +141,6 @@ namespace NewAgeUI.Controllers
     #endregion
 
     #region UpdateDropShip
-    //TODO: Add Instruction, Explanation, and Objective
     [HttpGet("UpdateDropShip")]
     public IActionResult UpdateDropShipTask() => View();
 
@@ -194,6 +194,37 @@ namespace NewAgeUI.Controllers
       await _skuVault.UpdateDropShip(skuAndNewQty);
 
       FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "DropShipUpdate.csv");
+
+      return file;
+    }
+    #endregion
+
+    #region ZendeskTalkSummary
+    [HttpGet("ZendeskTalkSummarizer")]
+    public IActionResult ZendeskTalkSummarizer() => View();
+
+    [HttpPost("ZendeskTalkSummarizer")]
+    public async Task<IActionResult> ZendeskTalkSummarizer(FileImportViewModel model)
+    {
+      string fileExtension = Path.GetExtension(model.CSVFile.FileName);
+
+      if (fileExtension != ".csv")
+      {
+        ModelState.AddModelError("", "File must be a CSV type");
+
+        return View();
+      }
+
+      List<ZendeskTalkCallModel> callHistory = await _fileReader.ReadZendeskTalkExportFile(model.CSVFile);
+
+      List<ZendeskTalkCallSummaryModel> summary = _fileReader.SummarizeCallHistory(callHistory);
+
+      List<string> lines = summary.Select(i => $"{ i.Date },{ i.Category },{ i.Count },{ i.AvgWaitMin },{ i.AvgTalkMin }").ToList();
+
+      string header = "Date,Category,Count,Avg Wait Min,Avg Talk Min";
+      StringBuilder sb = _fileReader.GenerateStringBuilder(true, header, lines);
+
+      FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "ZendeskTalkSummary.csv");
 
       return file;
     }

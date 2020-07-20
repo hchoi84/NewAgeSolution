@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using FileReaderLibrary.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
@@ -75,9 +76,100 @@ namespace FileReaderLibrary
 
       if (includeHeader) sb.AppendLine(header);
 
-      lines.ForEach(l => sb.AppendLine(l)); 
+      lines.ForEach(l => sb.AppendLine(l));
 
       return sb;
     }
+
+    #region ZendeskCallSummary
+    public async Task<List<ZendeskTalkCallModel>> ReadZendeskTalkExportFile(IFormFile file)
+    {
+      List<string> _headerNames = new List<string>()
+      {
+        "Date/Time", "Agent", "Call Status", "Wait Time", "Minutes"
+      };
+      List<int> _headerIndexes = new List<int>();
+      List<string> lines = new List<string>();
+
+      using (var reader = new StreamReader(file.OpenReadStream()))
+      {
+        while (reader.Peek() >= 0) lines.Add(await reader.ReadLineAsync());
+      }
+
+      TextFieldParser parser = new TextFieldParser(new StringReader(lines[0]));
+      parser.SetDelimiters(",");
+      List<string> headers = parser.ReadFields().ToList();
+      foreach (string header in _headerNames)
+      {
+        int index = headers.IndexOf(header);
+        _headerIndexes.Add(index);
+      }
+
+      List<ZendeskTalkCallModel> callHistory = new List<ZendeskTalkCallModel>();
+
+      foreach (string line in lines.Skip(1))
+      {
+        parser = new TextFieldParser(new StringReader(line));
+        parser.SetDelimiters(",");
+        string[] rawFields = parser.ReadFields();
+
+        ZendeskTalkCallModel call = new ZendeskTalkCallModel();
+
+        call.DateTime = DateTime.Parse(rawFields[_headerIndexes[0]]).Date;
+        call.Category = string.IsNullOrWhiteSpace(rawFields[_headerIndexes[1]]) ? rawFields[_headerIndexes[2]] : rawFields[_headerIndexes[1]];
+        call.WaitMin = Int32.Parse(rawFields[_headerIndexes[3]]) / 60;
+        call.TalkMin = Int32.Parse(rawFields[_headerIndexes[4]]);
+
+        callHistory.Add(call);
+      }
+
+      return callHistory;
+    }
+
+    public List<ZendeskTalkCallSummaryModel> SummarizeCallHistory(List<ZendeskTalkCallModel> model)
+    {
+      List<IGrouping<DateTime, ZendeskTalkCallModel>> groupedByDate = model.GroupBy(c => c.DateTime).ToList();
+
+      List<ZendeskTalkCallSummaryModel> callSummaries = new List<ZendeskTalkCallSummaryModel>();
+
+      foreach (var item in groupedByDate)
+      {
+        var groupedByCategory = item.GroupBy(i => i.Category).ToList();
+
+        List<ZendeskTalkCallSummaryModel> callSummaryByCategory = new List<ZendeskTalkCallSummaryModel>();
+
+        foreach (var g in groupedByCategory)
+        {
+          ZendeskTalkCallSummaryModel summaryByCategory = new ZendeskTalkCallSummaryModel
+          {
+            Date = item.Key.Date,
+            Category = g.Key,
+            Count = g.Count(),
+            AvgWaitMin = g.Average(i => i.WaitMin).ToString("F2"),
+            AvgTalkMin = g.Average(i => i.TalkMin).ToString("F2"),
+            EndOfDate = false
+          };
+
+          callSummaryByCategory.Add(summaryByCategory);
+        }
+        callSummaryByCategory.OrderBy(c => c.Category).ToList();
+
+        ZendeskTalkCallSummaryModel summaryByDate = new ZendeskTalkCallSummaryModel
+        {
+          Date = item.Key.Date,
+          Category = "Total",
+          Count = item.Count(),
+          AvgWaitMin = "",
+          AvgTalkMin = "",
+          EndOfDate = true
+        };
+        callSummaryByCategory.Add(summaryByDate);
+
+        callSummaries.AddRange(callSummaryByCategory);
+      }
+
+      return callSummaries;
+    }
+    #endregion
   }
 }
