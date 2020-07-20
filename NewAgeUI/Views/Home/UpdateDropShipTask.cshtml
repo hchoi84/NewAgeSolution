@@ -5,3 +5,65 @@
 <form asp-action="UpdateDropShip" method="post">
   <button class="btn btn-primary" type="submit">Update</button>
 </form>
+
+<div class="accordion mt-3" id="information">
+  <div class="card">
+    <div class="card-header" id="instructionBox">
+      <h2 class="mb-0">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#instruction" aria-expanded="false" aria-controls="instruction">
+          Instruction
+        </button>
+      </h2>
+    </div>
+    <div id="instruction" class="collapse" aria-labelledby="instructionBox" data-parent="#information">
+      <div class="card-body">
+        <ol>
+          <li>Press the button to start the process</li>
+          <li>Wait... as long as the windows tab is spinning, it's processing. This process will take at least couple of minutes depending on the result</li>
+          <li>When the system has finished processing, it'll automatically download a file that consists of product information before it was updated</li>
+          <li>For information on what the system is doing, please refer to the Explanation section</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="explanationBox">
+      <h2 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#explanation" aria-expanded="false" aria-controls="explanation">
+          Explanation
+        </button>
+      </h2>
+    </div>
+    <div id="explanation" class="collapse" aria-labelledby="explanationBox" data-parent="#information">
+      <div class="card-body">
+        <ul>
+          <li>IF InvFlag = Green AND AvailableQty <= 0, UPDATES DropShip quantity to 19999 in SkuVault</li>
+          <li>
+            IF InvFlag = Green AND  AvailableQty >= 15000 AND AvailableQty < 19999, UPDATES DropShip quantity to 19999 in Skuvault
+            <ul>
+              <li>The purpose of this task is for the website. Because of DropShip + Store quantity, it's likely that some products will have available quantity greater than 19999. Therefore, we'll need to indicate that the product is in-stock if it's greater than 19999</li>
+            </ul>
+          </li>
+          <li>IF InvFlag = Red AND  AvailableQty >= 15000; UPDATES DropShip quantity to 0 in SkuVault</li>
+          <li>**Ensure there are no pending orders in both ChannelAdvisor AND SkuVault</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="objectiveBox">
+      <h2 class="mb-0">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#objective" aria-expanded="false" aria-controls="objective">
+          Objective
+        </button>
+      </h2>
+    </div>
+    <div id="objective" class="collapse" aria-labelledby="objectiveBox" data-parent="#information">
+      <div class="card-body">
+        Automate the task to update DropShip quantity for the products that meet the requirement outlined in Explanation.
+      </div>
+    </div>
+  </div>
+</div>
