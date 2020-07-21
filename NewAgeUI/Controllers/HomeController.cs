@@ -10,13 +10,12 @@ using ChannelAdvisorLibrary;
 using ChannelAdvisorLibrary.Models;
 using FileReaderLibrary;
 using FileReaderLibrary.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
-using NewAgeUI.Utilities;
 using NewAgeUI.ViewModels;
 using Newtonsoft.Json.Linq;
 using SkuVaultLibrary;
@@ -29,13 +28,15 @@ namespace NewAgeUI.Controllers
     private readonly IChannelAdvisor _channelAdvisor;
     private readonly ISkuVault _skuVault;
     private readonly IFileReader _fileReader;
+    private readonly UserManager<Employee> _userManager;
 
-    public HomeController(ILogger<HomeController> logger, IChannelAdvisor channelAdvisor, ISkuVault skuVault, IFileReader fileReader)
+    public HomeController(ILogger<HomeController> logger, IChannelAdvisor channelAdvisor, ISkuVault skuVault, IFileReader fileReader, UserManager<Employee> userManager)
     {
       _logger = logger;
       _channelAdvisor = channelAdvisor;
       _skuVault = skuVault;
       _fileReader = fileReader;
+      _userManager = userManager;
     }
 
     [HttpGet("")]
@@ -229,6 +230,35 @@ namespace NewAgeUI.Controllers
       return file;
     }
     #endregion
+
+    [HttpGet("UserList")]
+    public async Task<IActionResult> UserList()
+    {
+      List<Employee> employees = await _userManager.Users.ToListAsync();
+      List<UserListViewModel> model = new List<UserListViewModel>();
+
+      foreach (Employee employee in employees)
+      {
+        List<string> claimType = new List<string>();
+
+        (await _userManager.GetClaimsAsync(employee)).ToList().ForEach(c => claimType.Add(c.Type));
+
+        model.Add(new UserListViewModel
+        {
+          FullName = employee.FullName,
+          EmailAddress = employee.Email,
+          AccessPermission = string.Join(", ", claimType),
+        });
+      }
+
+      return View(model);
+    }
+
+    [HttpGet("VersionHistory")]
+    public IActionResult VersionHistory() => View();
+
+    [HttpGet("AccessDenied")]
+    public IActionResult AccessDenied() => View();
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()

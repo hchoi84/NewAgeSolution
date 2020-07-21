@@ -1,0 +1,53 @@
+﻿@{ 
+  ViewData["Title"] = "Version History";
+}
+
+  <div class="accordion mt-3" id="history">
+    <div class="card">
+      <div class="card-header" id="historyTwoCard">
+        <h2 class="mb-0">
+          <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#historyTwo" aria-expanded="false" aria-controls="historyTwo">
+            July 20, 2020
+          </button>
+        </h2>
+      </div>
+      <div id="historyTwo" class="collapse" aria-labelledby="historyTwoCard" data-parent="#history">
+        <div class="card-body">
+          <ul>
+            <li>Last Commit: 2e55bf103f4ad3e1fc96f7a010d67b783d42f7d8</li>
+          </ul>
+          <ul>
+            <li>New Task: Zendesk Talk Summarizer</li>
+            <li>New Task: DropShip Updater</li>
+            <li>Updated Task: No Sales Report will no longer display result on the web. Instead it will download the result in CSV</li>
+            <li>Updated Task: Store Buffer will automatically download the result instead of waiting for the user to click a button</li>
+            <li>New Feature: Added Instruction, Explanation, and Objective to each task</li>
+            <li>Bug Fix: Password error not displaying correctly during registration</li>
+            <li>UI: Task names have been changed to better explain what it does</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" id="historyOneCard">
+        <h2 class="mb-0">
+          <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#historyOne" aria-expanded="false" aria-controls="historyOne">
+            July 12, 2020
+          </button>
+        </h2>
+      </div>
+      <div id="historyOne" class="collapse" aria-labelledby="historyOneCard" data-parent="#history">
+        <div class="card-body">
+          <ul>
+            <li>Last Commit: 4b26fa5d78147c54efbf6e0c1664c5f19951121d</li>
+          </ul>
+          <ul>
+            <li>New Task: Login and registration</li>
+            <li>New Task: No Sales Report</li>
+            <li>New Task: Store Buffer</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>

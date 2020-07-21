@@ -1,6 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Authorization
 
-@inject IAuthorizationService AuthorizationService 
+@inject IAuthorizationService AuthorizationService
 
 @{
   ViewData["Title"] = "Home Page";
@@ -14,6 +14,8 @@
 
 <a class="btn btn-primary btn-block" asp-action="ZDTSummarizer">ZendeskTalk Summarizer</a>
 
-<a class="btn btn-primary btn-block" asp-action="BufferSetter">Buffer By Store Qty</a>
+<a class="btn btn-primary btn-block" asp-action="BufferSetter">Buffer Setter</a>
 
-<a class="btn btn-primary btn-block" asp-action="DropShipUpdater">Update DropShip</a>
+<a class="btn btn-primary btn-block" asp-action="DropShipUpdater">DropShip Updater</a>
+
+<a class="btn btn-info btn-block" asp-action="VersionHistory">Version History</a>
