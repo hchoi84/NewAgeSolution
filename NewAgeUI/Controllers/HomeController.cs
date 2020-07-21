@@ -220,9 +220,9 @@ namespace NewAgeUI.Controllers
 
       List<ZDTSummaryModel> summary = _fileReader.SummarizeCallHistory(callHistory);
 
-      List<string> lines = summary.Select(i => $"{ i.Date },{ i.Category },{ i.Count },{ i.AvgWaitMin },{ i.AvgTalkMin }").ToList();
+      List<string> lines = summary.Select(i => $"{ i.CallDate },{ i.Count },{ i.AvgWaitSec },{ i.AvgTalkSec }").ToList();
 
-      string header = "Date,Category,Count,Avg Wait Min,Avg Talk Min";
+      string header = "Date,Count,Avg Wait Sec,Avg Talk Sec";
       StringBuilder sb = _fileReader.GenerateStringBuilder(true, header, lines);
 
       FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "ZendeskTalkSummary.csv");

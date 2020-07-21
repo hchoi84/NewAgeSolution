@@ -86,7 +86,7 @@ namespace FileReaderLibrary
     {
       List<string> _headerNames = new List<string>()
       {
-        "Date/Time", "Agent", "Call Status", "Wait Time", "Minutes"
+        "Call created at", "Call duration", "Wait time"
       };
       List<int> _headerIndexes = new List<int>();
       List<string> lines = new List<string>();
@@ -113,12 +113,12 @@ namespace FileReaderLibrary
         parser.SetDelimiters(",");
         string[] rawFields = parser.ReadFields();
 
-        ZDTModel call = new ZDTModel();
-
-        call.DateTime = DateTime.Parse(rawFields[_headerIndexes[0]]).Date;
-        call.Category = string.IsNullOrWhiteSpace(rawFields[_headerIndexes[1]]) ? rawFields[_headerIndexes[2]] : rawFields[_headerIndexes[1]];
-        call.WaitMin = Int32.Parse(rawFields[_headerIndexes[3]]) / 60;
-        call.TalkMin = Int32.Parse(rawFields[_headerIndexes[4]]);
+        ZDTModel call = new ZDTModel
+        {
+          CallDate = rawFields[_headerIndexes[0]].Substring(0, 10),
+          TalkSec = int.Parse(rawFields[_headerIndexes[1]]),
+          WaitSec = int.Parse(rawFields[_headerIndexes[2]])
+        };
 
         callHistory.Add(call);
       }
@@ -128,44 +128,19 @@ namespace FileReaderLibrary
 
     public List<ZDTSummaryModel> SummarizeCallHistory(List<ZDTModel> model)
     {
-      List<IGrouping<DateTime, ZDTModel>> groupedByDate = model.GroupBy(c => c.DateTime).ToList();
+      List<IGrouping<string, ZDTModel>> groupedByDate = model.GroupBy(c => c.CallDate).ToList();
 
       List<ZDTSummaryModel> callSummaries = new List<ZDTSummaryModel>();
 
       foreach (var item in groupedByDate)
       {
-        var groupedByCategory = item.GroupBy(i => i.Category).ToList();
-
-        List<ZDTSummaryModel> callSummaryByCategory = new List<ZDTSummaryModel>();
-
-        foreach (var g in groupedByCategory)
+        callSummaries.Add(new ZDTSummaryModel
         {
-          ZDTSummaryModel summaryByCategory = new ZDTSummaryModel
-          {
-            Date = item.Key.Date,
-            Category = g.Key,
-            Count = g.Count(),
-            AvgWaitMin = g.Average(i => i.WaitMin).ToString("F2"),
-            AvgTalkMin = g.Average(i => i.TalkMin).ToString("F2"),
-            EndOfDate = false
-          };
-
-          callSummaryByCategory.Add(summaryByCategory);
-        }
-        callSummaryByCategory.OrderBy(c => c.Category).ToList();
-
-        ZDTSummaryModel summaryByDate = new ZDTSummaryModel
-        {
-          Date = item.Key.Date,
-          Category = "Total",
+          CallDate = item.Key,
           Count = item.Count(),
-          AvgWaitMin = "",
-          AvgTalkMin = "",
-          EndOfDate = true
-        };
-        callSummaryByCategory.Add(summaryByDate);
-
-        callSummaries.AddRange(callSummaryByCategory);
+          AvgWaitSec = (int)item.Average(i => i.WaitSec),
+          AvgTalkSec = (int)item.Average(i => i.TalkSec),
+        });
       }
 
       return callSummaries;
