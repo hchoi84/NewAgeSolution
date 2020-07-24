@@ -159,11 +159,11 @@ namespace SkuVaultLibrary
             Secrets.UserToken
           });
 
-          items.Clear();
-
           StringContent content = new StringContent(body, Encoding.UTF8, _appjson);
 
           await PostDataAsync(reqUri, content);
+
+          items.Clear();
         }
       }
     }

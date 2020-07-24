@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using NewAgeUI.ViewModels;
 using System;
 using System.Collections.Generic;

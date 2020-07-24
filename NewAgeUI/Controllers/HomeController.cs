@@ -234,14 +234,12 @@ namespace NewAgeUI.Controllers
     [HttpGet("UserList")]
     public async Task<IActionResult> UserList()
     {
-      List<Employee> employees = await _userManager.Users.ToListAsync();
+      List<Employee> employees = (await _userManager.Users.ToListAsync()).OrderBy(e => e.FullName).ToList();
       List<UserListViewModel> model = new List<UserListViewModel>();
 
       foreach (Employee employee in employees)
       {
-        List<string> claimType = new List<string>();
-
-        (await _userManager.GetClaimsAsync(employee)).ToList().ForEach(c => claimType.Add(c.Type));
+        List<string> claimType = (await _userManager.GetClaimsAsync(employee)).Select(c => c.Type).ToList();
 
         model.Add(new UserListViewModel
         {

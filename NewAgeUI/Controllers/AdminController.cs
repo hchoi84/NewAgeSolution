@@ -33,28 +33,24 @@ namespace NewAgeUI.Controllers
     [HttpGet("")]
     public async Task<IActionResult> Index()
     {
-      List<Employee> employees = await _userManager.Users.ToListAsync();
-      List<AdminViewModel> adminViewModels = new List<AdminViewModel>();
+      List<Employee> employees = (await _userManager.Users.ToListAsync()).OrderBy(e => e.FullName).ToList();
+      List<AdminViewModel> model = new List<AdminViewModel>();
 
       foreach (Employee employee in employees)
       {
-        List<string> claimType = new List<string>();
+        List<string> claimType = (await _userManager.GetClaimsAsync(employee)).Select(c => c.Type).ToList();
 
-        (await _userManager.GetClaimsAsync(employee)).ToList().ForEach(c => claimType.Add(c.Type));
-
-        AdminViewModel adminViewModel = new AdminViewModel
+        model.Add(new AdminViewModel
         {
           EmployeeId = employee.Id,
           FullName = employee.FullName,
           EmailAddress = employee.Email,
           IsEmailVerified = employee.EmailConfirmed,
           AccessPermission = string.Join(", ", claimType),
-        };
-
-        adminViewModels.Add(adminViewModel);
+        });
       }
 
-      return View(adminViewModels);
+      return View(model);
     }
 
     [HttpGet("{employeeId}")]
