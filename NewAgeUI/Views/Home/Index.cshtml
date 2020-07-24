@@ -2,15 +2,10 @@
 
 @inject IAuthorizationService AuthorizationService
 
-@{
-  ViewData["Title"] = "Home Page";
-}
+@{ ViewData["Title"] = "Home Page"; }
 
 
-@if ((await AuthorizationService.AuthorizeAsync(User, "NoSale")).Succeeded)
-{
-  <a class="btn btn-primary btn-block" asp-action="NoSalesReport">No Sales Report</a>
-}
+<a class="btn btn-primary btn-block" asp-action="NoSalesReport">No Sales Report</a>
 
 <a class="btn btn-primary btn-block" asp-action="ZDTSummarizer">ZendeskTalk Summarizer</a>
 
