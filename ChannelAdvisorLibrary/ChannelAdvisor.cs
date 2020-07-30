@@ -34,7 +34,7 @@ namespace ChannelAdvisorLibrary
 
     private readonly List<string> _labelNames = new List<string>() { "Closeout", "Discount", "MAPNoShow", "MAPShow", "NPIP" };
 
-    public void EstablishConnection()
+    private void EstablishConnection()
     {
       if (Secrets.TokenExpireDateTime < DateTime.Now || Secrets.TokenExpireDateTime == null)
       {
@@ -103,12 +103,28 @@ namespace ChannelAdvisorLibrary
     }
 
     #region NoSalesReport
-    public async Task<List<string>> GetDistinctParentIdsAsync(string filter, string expand, string select)
+    public async Task<List<NoSalesReportModel>> GetNoSalesReport(DateTime lastSoldDate)
     {
-      //Get products via ChannelAdvisorAPI
+      string filter = $"LastSaleDateUtc lt {lastSoldDate:yyyy-MM-dd}";
+      string expand = "";
+      string select = "ParentProductID";
+      List<string> distinctParentIds = await GetDistinctParentIdsAsync(filter, expand, select);
+
+      List<JObject> jObjects = await GetChildrenPerParentIdAsync(distinctParentIds);
+
+      List<NoSalesReportModel> model = ConvertToNoSalesReportModel(jObjects);
+
+      model = AddParentInfo(model)
+        .OrderBy(m => m.Sku)
+        .ToList();
+
+      return model;
+    }
+
+    private async Task<List<string>> GetDistinctParentIdsAsync(string filter, string expand, string select)
+    {
       List<JObject> jObjects = await GetProductsAsync(filter, expand, select);
 
-      //Get distinct parent ids
       List<string> distinctParentIds = jObjects
         .Where(j => !string.IsNullOrWhiteSpace(j[select].ToObject<string>()))
         .Select(j => j[select].ToObject<string>())
@@ -118,7 +134,7 @@ namespace ChannelAdvisorLibrary
       return distinctParentIds;
     }
 
-    public async Task<List<JObject>> GetChildrenPerParentIdAsync(List<string> distinctParentIds)
+    private async Task<List<JObject>> GetChildrenPerParentIdAsync(List<string> distinctParentIds)
     {
       List<JObject> jObjects = new List<JObject>();
 
@@ -128,7 +144,10 @@ namespace ChannelAdvisorLibrary
         bool isMoreThan10 = distinctParentIds.Count > 10;
         int x = isMoreThan10 ? 10 : distinctParentIds.Count;
 
-        List<string> first10 = distinctParentIds.GetRange(0, x).Select(parentId => $"ParentProductId eq { parentId }").ToList();
+        List<string> first10 = distinctParentIds
+          .GetRange(0, x)
+          .Select(parentId => $"ParentProductId eq { parentId }")
+          .ToList();
 
         distinctParentIds.RemoveRange(0, x);
 
@@ -142,24 +161,29 @@ namespace ChannelAdvisorLibrary
       return jObjects;
     }
 
-    public List<NoSalesReportModel> ConvertToNoSalesReportModel(List<JObject> jObjects)
+    private List<NoSalesReportModel> ConvertToNoSalesReportModel(List<JObject> jObjects)
     {
       List<int> profileIds = new List<int> { Secrets.MainProfileId, Secrets.OtherProfileId };
       List<NoSalesReportModel> model = new List<NoSalesReportModel>();
 
       foreach (int profileId in profileIds)
       {
-        List<JObject> filteredByProfileId = jObjects.Where(j => j[_profileId].ToObject<int>() == profileId).ToList();
+        List<JObject> filteredByProfileId = jObjects
+          .Where(j => j[_profileId].ToObject<int>() == profileId)
+          .ToList();
 
         foreach (var item in filteredByProfileId)
         {
-          var fbaQty = item[_dcQuantities].FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
+          var fbaQty = item[_dcQuantities]
+            .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
           
           NoSalesReportModel p = new NoSalesReportModel();
 
           if (profileId == Secrets.OtherProfileId)
           {
-            p = model.FirstOrDefault(m => m.Sku == item[_sku].ToObject<string>());
+            p = model
+              .FirstOrDefault(m => m.Sku == item[_sku]
+              .ToObject<string>());
 
             if (p != null)
             {
@@ -170,13 +194,19 @@ namespace ChannelAdvisorLibrary
             }
           }
 
-          string allName = item[_attributes].FirstOrDefault(i => i[_name].ToObject<string>() == _allName)[_Value].ToObject<string>();
+          string allName = item[_attributes]
+            .FirstOrDefault(i => i[_name].ToObject<string>() == _allName)[_Value]
+            .ToObject<string>();
 
           p = item.ToObject<NoSalesReportModel>();
           p.FBA = fbaQty != null ? fbaQty[_availableQuantity].ToObject<int>() : 0;
-          p.ItemName = item[_attributes].FirstOrDefault(i => i[_name].ToObject<string>() == _itemName)[_Value].ToObject<string>();
+          p.ItemName = item[_attributes]
+            .FirstOrDefault(i => i[_name].ToObject<string>() == _itemName)[_Value]
+            .ToObject<string>();
           p.AllName = allName.Replace(p.ItemName, string.Empty);
-          p.ProductLabel = item[_labels].FirstOrDefault(i => _labelNames.Contains(i[_name].ToObject<string>()))[_name].ToObject<string>();
+          p.ProductLabel = item[_labels]
+            .FirstOrDefault(i => _labelNames.Contains(i[_name].ToObject<string>()))[_name]
+            .ToObject<string>();
 
           model.Add(p);
         }
@@ -185,7 +215,7 @@ namespace ChannelAdvisorLibrary
       return model;
     }
 
-    public List<NoSalesReportModel> AddParentInfo(List<NoSalesReportModel> model)
+    private List<NoSalesReportModel> AddParentInfo(List<NoSalesReportModel> model)
     {
       //Create parent information
       List<IGrouping<string, NoSalesReportModel>> groupedByParentSku = model.GroupBy(m => m.ParentSKU).ToList();
@@ -230,8 +260,9 @@ namespace ChannelAdvisorLibrary
       return models;
     }
 
-    public string GetMainName() => Secrets.MainName;
-    public string GetOtherName() => Secrets.OtherName;
+    public List<string> GetAcctNames() => new List<string> { GetMainAcctName(), GetOtherAcctName() };
+    public string GetMainAcctName() => Secrets.MainName;
+    public string GetOtherAcctName() => Secrets.OtherName;
     public int GetMainProfileId() => Secrets.MainProfileId;
   }
 }

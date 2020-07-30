@@ -51,26 +51,25 @@ namespace FileReaderLibrary
       return result;
     }
 
-    public StringBuilder ConvertToStoreBufferStringBuilder(Dictionary<string, int> skusAndStoreQty, string channelName, bool includeHeader)
+    public StringBuilder ConvertToStoreBufferSB(
+      bool includeHeader,
+      Dictionary<string, int> productsToUpdate,
+      string channelName)
     {
-      StringBuilder sb = new StringBuilder();
+     string header = "SKU,Code,Channel Name,Do not send quantity for this SKU,Include incoming quantity mode,Buffer Quantity Mode,Buffer quantity,Maximum quantity to push mode,Maximum quantity to push,Push constant quantity mode,Push constant quantity";
 
-      if (includeHeader)
-      {
-        sb.AppendLine("SKU,Code,Channel Name,Do not send quantity for this SKU,Include incoming quantity mode,Buffer Quantity Mode,Buffer quantity,Maximum quantity to push mode,Maximum quantity to push,Push constant quantity mode,Push constant quantity");
-      }
-
-      foreach (var product in skusAndStoreQty)
+      List<string> lines = new List<string>();
+      foreach (var product in productsToUpdate)
       {
         string bufferQuantityMode = product.Value == 0 ? "Off" : "Subtraction";
 
-        sb.AppendLine($"{ product.Key },,{ channelName },Off,Off,{ bufferQuantityMode },{ product.Value },Off,20000,Off,0");
+        lines.Add($"{ product.Key },,{ channelName },Off,Off,{ bufferQuantityMode },{ product.Value },Off,20000,Off,0");
       }
 
-      return sb;
+      return GenerateSB(includeHeader, header, lines);
     }
 
-    public StringBuilder GenerateStringBuilder(bool includeHeader, string header, List<string> lines)
+    public StringBuilder GenerateSB(bool includeHeader, string header, List<string> lines)
     {
       StringBuilder sb = new StringBuilder();
 

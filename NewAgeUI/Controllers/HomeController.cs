@@ -49,30 +49,18 @@ namespace NewAgeUI.Controllers
     [HttpPost("NoSalesReport")]
     public async Task<IActionResult> NoSalesReport(DateTime lastSoldDate)
     {
-      string filter = $"LastSaleDateUtc lt {lastSoldDate:yyyy-MM-dd}";
-      string expand = "";
-      string select = "ParentProductID";
-      List<string> distinctParentIds = await _channelAdvisor.GetDistinctParentIdsAsync(filter, expand, select);
-
-      List<JObject> jObjects = await _channelAdvisor.GetChildrenPerParentIdAsync(distinctParentIds);
-
-      List<NoSalesReportModel> model = _channelAdvisor.ConvertToNoSalesReportModel(jObjects);
-
-      model = _channelAdvisor.AddParentInfo(model).OrderBy(m => m.Sku).ToList();
+      List<NoSalesReportModel> model = await _channelAdvisor.GetNoSalesReport(lastSoldDate);
 
       List<string> lines = new List<string>();
-
-      foreach (var product in model)
-      {
-        string line = $"{ product.Sku },{ product.UPC },{product.CreateDateUtc:yyyy-MM-dd},{ product.AllName },{product.LastSaleDateUtc:yyyy-MM-dd},{ product.ProductLabel },{ product.TotalAvailableQuantity } / { product.FBA }";
-
-        lines.Add(line);
-      }
+      model.ForEach(p => lines.Add($"{ p.Sku },{ p.UPC },{p.CreateDateUtc:yyyy-MM-dd},{ p.AllName },{p.LastSaleDateUtc:yyyy-MM-dd},{ p.ProductLabel },{ p.TotalAvailableQuantity } / { p.FBA }"));
 
       string header = "SKU,UPC,Created,All Name,Last Sold Date,Label,WH/FBA Qty";
-      StringBuilder sb = _fileReader.GenerateStringBuilder(true, header, lines);
+      StringBuilder sb = _fileReader.GenerateSB(true, header, lines);
 
-      FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "NoSalesReport.csv");
+      byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
+      string contentType = "text/csv";
+      string fileName = $"NoSalesReport-{ DateTime.Now.ToShortDateString() }.csv";
+      FileContentResult file = File(fileContent, contentType, fileName);
 
       return file;
     }
@@ -94,48 +82,28 @@ namespace NewAgeUI.Controllers
     public async Task<IActionResult> BufferSetter(FileImportViewModel model)
     {
       string fileExtension = Path.GetExtension(model.CSVFile.FileName);
-      
       if (fileExtension != ".csv") 
       {
         ModelState.AddModelError("", "File must be a CSV type");
-      
         return View(); 
       }
 
-      Dictionary<string, int> skuAndQtyFromFile = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
+      Dictionary<string, int> activeBufferProducts = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
+      Dictionary<string, int> productsToUpdate = await _skuVault.GetProductsToUpdate(activeBufferProducts);
 
-      int pageNumber = 0;
-      int pageSize = 10000;
-      bool hasMoreProducts;
-
-      Dictionary<string, int> skuAndQtyForImport = new Dictionary<string, int>();
-
-      do
+      StringBuilder sb = new StringBuilder();
+      foreach (var accountName in _channelAdvisor.GetAcctNames())
       {
-        hasMoreProducts = false;
+        sb.Append(_fileReader.ConvertToStoreBufferSB(
+          sb.Length == 0,
+          productsToUpdate,
+          accountName));
+      }
 
-        List<JToken> jTokens = await _skuVault.GetInventoryByLocationAsync(pageNumber, pageSize);
-
-        Dictionary<string, int> skuAndQtyFromSV = _skuVault.RetrieveSkuAndQty(jTokens);
-
-        _skuVault.ProcessUniqueSkuAndQty(skuAndQtyFromSV, skuAndQtyFromFile, skuAndQtyForImport);
-
-        if (jTokens.Count >= pageSize)
-        {
-          hasMoreProducts = true;
-          pageNumber++;
-        }
-
-        Thread.Sleep(12000);
-
-      } while (hasMoreProducts);
-
-      skuAndQtyFromFile.ToList().ForEach(sku => skuAndQtyForImport.Add(sku.Key, 0));
-
-      StringBuilder sb = _fileReader.ConvertToStoreBufferStringBuilder(skuAndQtyForImport, _channelAdvisor.GetMainName(), true);
-      sb.Append(_fileReader.ConvertToStoreBufferStringBuilder(skuAndQtyForImport, _channelAdvisor.GetOtherName(), false));
-
-      FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "StoreBuffer.csv");
+      byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
+      string contentType = "text/csv";
+      string fileName = $"StoreBuffer-{ DateTime.Now.ToShortDateString() }.csv";
+      FileContentResult file = File(fileContent, contentType, fileName);
 
       return file;
     }
@@ -190,7 +158,7 @@ namespace NewAgeUI.Controllers
       }
 
       string header = "SKU,InvFlag,Label,All Name,Qty";
-      StringBuilder sb = _fileReader.GenerateStringBuilder(true, header, lines);
+      StringBuilder sb = _fileReader.GenerateSB(true, header, lines);
 
       await _skuVault.UpdateDropShip(skuAndNewQty);
 
@@ -223,7 +191,7 @@ namespace NewAgeUI.Controllers
       List<string> lines = summary.Select(i => $"{ i.CallDate },{ i.Count },{ i.AvgWaitSec },{ i.AvgTalkSec }").ToList();
 
       string header = "Date,Count,Avg Wait Sec,Avg Talk Sec";
-      StringBuilder sb = _fileReader.GenerateStringBuilder(true, header, lines);
+      StringBuilder sb = _fileReader.GenerateSB(true, header, lines);
 
       FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "ZendeskTalkSummary.csv");
 

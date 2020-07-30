@@ -8,17 +8,13 @@ namespace ChannelAdvisorLibrary
 {
   public interface IChannelAdvisor
   {
-    void EstablishConnection();
     Task<List<JObject>> GetProductsAsync(string filter, string expand, string select);
-    Task<List<string>> GetDistinctParentIdsAsync(string filter, string expand, string select);
-    Task<List<JObject>> GetChildrenPerParentIdAsync(List<string> distinctParentIds);
-    List<NoSalesReportModel> ConvertToNoSalesReportModel(List<JObject> jObjects);
-    List<NoSalesReportModel> AddParentInfo(List<NoSalesReportModel> model);
-
+    Task<List<NoSalesReportModel>> GetNoSalesReport(DateTime lastSoldDate);
     List<UpdateDropShipReportModel> ConvertToUpdateDropShipReportModel(List<JObject> jObjects);
 
-    string GetMainName();
+    string GetMainAcctName();
     int GetMainProfileId();
-    string GetOtherName();
+    string GetOtherAcctName();
+    List<string> GetAcctNames();
   }
 }

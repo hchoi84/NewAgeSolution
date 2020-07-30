@@ -7,6 +7,7 @@ using SkuVaultLibrary.Securities;
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace SkuVaultLibrary
 {
@@ -46,7 +47,7 @@ namespace SkuVaultLibrary
       }
     }
 
-    public async Task<JObject> PostDataAsync(string reqUri, StringContent content)
+    private async Task<JObject> PostDataAsync(string reqUri, StringContent content)
     {
       string result;
 
@@ -63,7 +64,41 @@ namespace SkuVaultLibrary
       return jObject;
     }
 
-    public async Task<List<JToken>> GetInventoryByLocationAsync(int pageNumber, int pageSize)
+    #region BufferSetter
+    public async Task<Dictionary<string, int>> GetProductsToUpdate(
+      Dictionary<string, int> activeBufferProducts)
+    {
+      Dictionary<string, int> productsToUpdate = new Dictionary<string, int>();
+      int pageNumber = 0;
+      int pageSize = 10000;
+      bool hasMoreProducts;
+
+      do
+      {
+        hasMoreProducts = false;
+
+        List<JToken> jTokens = await GetInventoryByLocationAsync(pageNumber, pageSize);
+        Dictionary<string, int> storeProducts = RetrieveStoreProducts(jTokens);
+        ProcessUniqueSkuAndQty(storeProducts, activeBufferProducts, productsToUpdate);
+
+        if (jTokens.Count >= pageSize)
+        {
+          hasMoreProducts = true;
+          pageNumber++;
+        }
+
+        Thread.Sleep(12000);
+
+      } while (hasMoreProducts);
+
+      activeBufferProducts
+        .ToList()
+        .ForEach(sku => productsToUpdate.Add(sku.Key, 0));
+
+      return productsToUpdate;
+    }
+
+    private async Task<List<JToken>> GetInventoryByLocationAsync(int pageNumber, int pageSize)
     {
       string _tenantToken = this._tenantToken;
       string _userToken = this._userToken;
@@ -90,7 +125,7 @@ namespace SkuVaultLibrary
       return jTokens;
     }
 
-    public Dictionary<string, int> RetrieveSkuAndQty(List<JToken> jTokens)
+    private Dictionary<string, int> RetrieveStoreProducts(List<JToken> jTokens)
     {
       Dictionary<string, int> skuAndStoreQty = new Dictionary<string, int>();
 
@@ -99,37 +134,38 @@ namespace SkuVaultLibrary
         if (product.Value.Count() == 0 || product.Name.Length <= 7) continue;
 
         var storeLoc = product.Value.FirstOrDefault(l => l[_locationCode].ToString() == _store);
-
         if (storeLoc == null) continue;
 
         int qty = storeLoc[_quantity].Value<int>();
-
         var name = product.Name;
-
         skuAndStoreQty.Add(name, qty);
       }
 
       return skuAndStoreQty;
     }
 
-    public void ProcessUniqueSkuAndQty(Dictionary<string, int> skuAndQtyFromSV, Dictionary<string, int> skuAndQtyFromFile, Dictionary<string, int> skuAndQtyForImport)
+    private void ProcessUniqueSkuAndQty(
+      Dictionary<string, int> storeProducts,
+      Dictionary<string, int> activeBufferProducts,
+      Dictionary<string, int> productsToUpdate)
     {
-      foreach (KeyValuePair<string, int> item in skuAndQtyFromSV)
+      foreach (KeyValuePair<string, int> item in storeProducts)
       {
-        if (skuAndQtyFromFile.Contains(item))
+        if (activeBufferProducts.Contains(item))
         {
-          skuAndQtyFromFile.Remove(item.Key);
+          activeBufferProducts.Remove(item.Key);
           continue;
         }
 
-        if (skuAndQtyFromFile.ContainsKey(item.Key))
+        if (activeBufferProducts.ContainsKey(item.Key))
         {
-          skuAndQtyFromFile.Remove(item.Key);
+          activeBufferProducts.Remove(item.Key);
         }
 
-        skuAndQtyForImport.Add(item.Key, item.Value);
+        productsToUpdate.Add(item.Key, item.Value);
       }
     }
+    #endregion
 
     public async Task UpdateDropShip(Dictionary<string, int> skuAndNewQty)
     {
