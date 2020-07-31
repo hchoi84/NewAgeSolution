@@ -14,7 +14,6 @@ namespace FileReaderLibrary
       Dictionary<string, int> productsToUpdate,
       string channelName);
     StringBuilder GenerateSB(bool includeHeader, string header, List<string> lines);
-    Task<List<ZDTModel>> ReadZendeskTalkExportFile(IFormFile file);
-    List<ZDTSummaryModel> SummarizeCallHistory(List<ZDTModel> model);
+    Task<List<ZDTSummaryModel>> SummarizeAsync(IFormFile file);
   }
 }

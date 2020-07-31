@@ -51,6 +51,7 @@ namespace FileReaderLibrary
       return result;
     }
 
+    #region BufferSetter
     public StringBuilder ConvertToStoreBufferSB(
       bool includeHeader,
       Dictionary<string, int> productsToUpdate,
@@ -68,20 +69,32 @@ namespace FileReaderLibrary
 
       return GenerateSB(includeHeader, header, lines);
     }
+    #endregion
 
-    public StringBuilder GenerateSB(bool includeHeader, string header, List<string> lines)
+    #region ZDTSummarizer
+    public async Task<List<ZDTSummaryModel>> SummarizeAsync(IFormFile file)
     {
-      StringBuilder sb = new StringBuilder();
+      List<ZDTModel> callHistory = await ReadZDTExportFile(file);
 
-      if (includeHeader) sb.AppendLine(header);
+      List<IGrouping<string, ZDTModel>> groupedByDate = callHistory.GroupBy(c => c.CallDate).ToList();
 
-      lines.ForEach(l => sb.AppendLine(l));
+      List<ZDTSummaryModel> summary = new List<ZDTSummaryModel>();
 
-      return sb;
+      foreach (var item in groupedByDate)
+      {
+        summary.Add(new ZDTSummaryModel
+        {
+          CallDate = item.Key,
+          Count = item.Count(),
+          AvgWaitSec = (int)item.Average(i => i.WaitSec),
+          AvgTalkSec = (int)item.Average(i => i.TalkSec),
+        });
+      }
+
+      return summary;
     }
 
-    #region ZendeskCallSummary
-    public async Task<List<ZDTModel>> ReadZendeskTalkExportFile(IFormFile file)
+    private async Task<List<ZDTModel>> ReadZDTExportFile(IFormFile file)
     {
       List<string> _headerNames = new List<string>()
       {
@@ -124,26 +137,17 @@ namespace FileReaderLibrary
 
       return callHistory;
     }
-
-    public List<ZDTSummaryModel> SummarizeCallHistory(List<ZDTModel> model)
-    {
-      List<IGrouping<string, ZDTModel>> groupedByDate = model.GroupBy(c => c.CallDate).ToList();
-
-      List<ZDTSummaryModel> callSummaries = new List<ZDTSummaryModel>();
-
-      foreach (var item in groupedByDate)
-      {
-        callSummaries.Add(new ZDTSummaryModel
-        {
-          CallDate = item.Key,
-          Count = item.Count(),
-          AvgWaitSec = (int)item.Average(i => i.WaitSec),
-          AvgTalkSec = (int)item.Average(i => i.TalkSec),
-        });
-      }
-
-      return callSummaries;
-    }
     #endregion
+
+    public StringBuilder GenerateSB(bool includeHeader, string header, List<string> lines)
+    {
+      StringBuilder sb = new StringBuilder();
+
+      if (includeHeader) sb.AppendLine(header);
+
+      lines.ForEach(l => sb.AppendLine(l));
+
+      return sb;
+    }
   }
 }

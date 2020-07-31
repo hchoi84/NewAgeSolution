@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using ChannelAdvisorLibrary;
 using ChannelAdvisorLibrary.Models;
@@ -17,7 +16,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
 using NewAgeUI.ViewModels;
-using Newtonsoft.Json.Linq;
 using SkuVaultLibrary;
 
 namespace NewAgeUI.Controllers
@@ -116,35 +114,14 @@ namespace NewAgeUI.Controllers
     [HttpPost("DropShipUpdater")]
     public async Task<IActionResult> DropShipUpdaterBatch()
     {
-      int mainProfileId = _channelAdvisor.GetMainProfileId();
-      string filterBase = $"ProfileId eq { mainProfileId } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq";
-      string taq = "TotalAvailableQuantity";
-
-      List<string> filters = new List<string>
-      {
-        $"{ filterBase } 'Green') and { taq } le 0",
-        $"{ filterBase } 'Green') and { taq } ge 15000 and { taq } lt 19999",
-        $"{ filterBase } 'Red') and { taq } ge 15000",
-      };
-      string expand = "Attributes,Labels";
-      string select = $"Sku,{ taq }";
-
       List<UpdateDropShipReportModel> products = new List<UpdateDropShipReportModel>();
-
-      foreach (var filter in filters)
+      try
       {
-        List<JObject> jObjects = new List<JObject>();
-
-        try
-        {
-          jObjects = await _channelAdvisor.GetProductsAsync(filter, expand, select);
-        }
-        catch (Exception e)
-        {
-          return Json(e.Message);
-        }
-
-        products.AddRange(_channelAdvisor.ConvertToUpdateDropShipReportModel(jObjects));
+        products = await _channelAdvisor.GetProductsToUpdate();
+      }
+      catch (Exception e)
+      {
+        return Json(e.Message);
       }
 
       List<string> lines = new List<string>();
@@ -153,16 +130,18 @@ namespace NewAgeUI.Controllers
       foreach (var product in products)
       {
         lines.Add($"{product.Sku},{product.InvFlag},{product.Label},\"{product.AllName}\",{product.Qty}");
-
         skuAndNewQty.Add(product.Sku, product.InvFlag == "Green" ? 19999 : 0);
       }
+
+      await _skuVault.UpdateDropShip(skuAndNewQty);
 
       string header = "SKU,InvFlag,Label,All Name,Qty";
       StringBuilder sb = _fileReader.GenerateSB(true, header, lines);
 
-      await _skuVault.UpdateDropShip(skuAndNewQty);
-
-      FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "DropShipUpdate.csv");
+      byte[] fileContents = new UTF8Encoding().GetBytes(sb.ToString());
+      string contentType = "text/csv";
+      string fileName = $"DropShipUpdate-{ DateTime.Now.ToShortDateString() }.csv";
+      FileContentResult file = File(fileContents, contentType, fileName);
 
       return file;
     }
@@ -180,20 +159,19 @@ namespace NewAgeUI.Controllers
       if (fileExtension != ".csv")
       {
         ModelState.AddModelError("", "File must be a CSV type");
-
         return View();
       }
 
-      List<ZDTModel> callHistory = await _fileReader.ReadZendeskTalkExportFile(model.CSVFile);
-
-      List<ZDTSummaryModel> summary = _fileReader.SummarizeCallHistory(callHistory);
-
-      List<string> lines = summary.Select(i => $"{ i.CallDate },{ i.Count },{ i.AvgWaitSec },{ i.AvgTalkSec }").ToList();
+      List<ZDTSummaryModel> summary = await _fileReader.SummarizeAsync(model.CSVFile);
 
       string header = "Date,Count,Avg Wait Sec,Avg Talk Sec";
+      List<string> lines = summary.Select(i => $"{ i.CallDate },{ i.Count },{ i.AvgWaitSec },{ i.AvgTalkSec }").ToList();
       StringBuilder sb = _fileReader.GenerateSB(true, header, lines);
 
-      FileContentResult file = File(new UTF8Encoding().GetBytes(sb.ToString()), "text/csv", "ZendeskTalkSummary.csv");
+      byte[] fileContents = new UTF8Encoding().GetBytes(sb.ToString());
+      string contentTypes = "text/csv";
+      string fileName = $"ZendeskTalkSummyar-{ DateTime.Now.ToShortDateString() }.csv";
+      FileContentResult file = File(fileContents, contentTypes, fileName);
 
       return file;
     }

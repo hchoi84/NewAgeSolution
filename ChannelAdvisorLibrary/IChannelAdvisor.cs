@@ -10,7 +10,7 @@ namespace ChannelAdvisorLibrary
   {
     Task<List<JObject>> GetProductsAsync(string filter, string expand, string select);
     Task<List<NoSalesReportModel>> GetNoSalesReport(DateTime lastSoldDate);
-    List<UpdateDropShipReportModel> ConvertToUpdateDropShipReportModel(List<JObject> jObjects);
+    Task<List<UpdateDropShipReportModel>> GetProductsToUpdate();
 
     string GetMainAcctName();
     int GetMainProfileId();

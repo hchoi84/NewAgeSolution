@@ -32,7 +32,10 @@ namespace ChannelAdvisorLibrary
     private readonly string _labels = "Labels";
     #endregion
 
-    private readonly List<string> _labelNames = new List<string>() { "Closeout", "Discount", "MAPNoShow", "MAPShow", "NPIP" };
+    private readonly List<string> _labelNames = new List<string>
+    {
+      "Closeout", "Discount", "MAPNoShow", "MAPShow", "NPIP"
+    };
 
     private void EstablishConnection()
     {
@@ -176,7 +179,7 @@ namespace ChannelAdvisorLibrary
         {
           var fbaQty = item[_dcQuantities]
             .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
-          
+
           NoSalesReportModel p = new NoSalesReportModel();
 
           if (profileId == Secrets.OtherProfileId)
@@ -239,7 +242,43 @@ namespace ChannelAdvisorLibrary
     }
     #endregion
 
-    public List<UpdateDropShipReportModel> ConvertToUpdateDropShipReportModel(List<JObject> jObjects)
+    #region DropShipUpdater
+    public async Task<List<UpdateDropShipReportModel>> GetProductsToUpdate()
+    {
+      string filterBase = $"ProfileId eq { GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq";
+      string taq = "TotalAvailableQuantity";
+
+      List<string> filters = new List<string>
+      {
+        $"{ filterBase } 'Green') and { taq } le 0",
+        $"{ filterBase } 'Green') and { taq } ge 15000 and { taq } lt 19999",
+        $"{ filterBase } 'Red') and { taq } ge 15000",
+      };
+      string expand = "Attributes,Labels";
+      string select = $"Sku,{ taq }";
+
+      List<UpdateDropShipReportModel> products = new List<UpdateDropShipReportModel>();
+
+      foreach (var filter in filters)
+      {
+        List<JObject> jObjects = new List<JObject>();
+
+        try
+        {
+          jObjects = await GetProductsAsync(filter, expand, select);
+        }
+        catch (Exception e)
+        {
+          throw new Exception(e.Message, e);
+        }
+
+        products.AddRange(ConvertToUpdateDropShipReportModel(jObjects));
+      }
+
+      return products;
+    }
+
+    private List<UpdateDropShipReportModel> ConvertToUpdateDropShipReportModel(List<JObject> jObjects)
     {
       List<UpdateDropShipReportModel> models = new List<UpdateDropShipReportModel>();
 
@@ -259,6 +298,7 @@ namespace ChannelAdvisorLibrary
 
       return models;
     }
+    #endregion
 
     public List<string> GetAcctNames() => new List<string> { GetMainAcctName(), GetOtherAcctName() };
     public string GetMainAcctName() => Secrets.MainName;
