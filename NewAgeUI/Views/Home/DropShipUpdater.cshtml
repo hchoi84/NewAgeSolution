@@ -45,8 +45,9 @@
               <li>The purpose of this task is for the website. Because of DropShip + Store quantity, it's likely that some products will have available quantity greater than 19999. Therefore, we'll need to indicate that the product is in-stock if it's greater than 19999</li>
             </ul>
           </li>
-          <li>IF InvFlag = Red AND  AvailableQty >= 15000; UPDATES DropShip quantity to 0 in SkuVault</li>
-          <li>**Ensure there are no pending orders in both ChannelAdvisor AND SkuVault</li>
+          <li>IF InvFlag = Green AND AvailableQty > 19999, UPDATES DropShip quantity to 0 in SkuVault</li>
+          <li>IF InvFlag = Red AND AvailableQty >= 15000; UPDATES DropShip quantity to 0 in SkuVault</li>
+          <li class="text-info">**Ensure there are no pending orders in both ChannelAdvisor AND SkuVault</li>
         </ul>
       </div>
     </div>
