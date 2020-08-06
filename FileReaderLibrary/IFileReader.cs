@@ -13,7 +13,7 @@ namespace FileReaderLibrary
       bool includeHeader,
       Dictionary<string, int> productsToUpdate,
       string channelName);
-    StringBuilder GenerateSB(bool includeHeader, string header, List<string> lines);
     Task<List<ZDTSummaryModel>> SummarizeAsync(IFormFile file);
+    StringBuilder GenerateSB(bool includeHeader, string header, List<string> lines);
   }
 }

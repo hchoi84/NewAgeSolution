@@ -130,7 +130,18 @@ namespace NewAgeUI.Controllers
       foreach (var product in products)
       {
         lines.Add($"{product.Sku},{product.InvFlag},{product.Label},\"{product.AllName}\",{product.Qty}");
-        skuAndNewQty.Add(product.Sku, product.InvFlag == "Green" ? 19999 : 0);
+
+        int newQty = 0;
+        if (product.InvFlag == "Green")
+        {
+          if (product.Qty <= 0) newQty = 19999;
+          else if (product.Qty > 15000 
+            && product.Qty < 19999) newQty = 19999;
+          else if (product.Qty > 19999) newQty = 0;
+        }
+        else if (product.InvFlag == "Red" && product.Qty > 15000) newQty = 0;
+        else continue;
+        skuAndNewQty.Add(product.Sku, newQty);
       }
 
       await _skuVault.UpdateDropShip(skuAndNewQty);

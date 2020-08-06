@@ -12,9 +12,9 @@ namespace ChannelAdvisorLibrary
     Task<List<NoSalesReportModel>> GetNoSalesReport(DateTime lastSoldDate);
     Task<List<UpdateDropShipReportModel>> GetProductsToUpdate();
 
-    string GetMainAcctName();
-    int GetMainProfileId();
-    string GetOtherAcctName();
     List<string> GetAcctNames();
+    string GetMainAcctName();
+    string GetOtherAcctName();
+    int GetMainProfileId();
   }
 }

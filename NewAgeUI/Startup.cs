@@ -34,7 +34,8 @@ namespace NewAgeUI
 
       //services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql(Configuration.GetConnectionString("AuthDbConnection")));
 
-      services.AddDbContextPool<NewAgeDbContext>(options => options.UseMySql($"Server={ server }; Uid=root; Pwd={ password }; Port={ port }; Database=NewAgeSolution"));
+      services.AddDbContextPool<NewAgeDbContext>(options => 
+        options.UseMySql($"Server={ server }; Uid=root; Pwd={ password }; Port={ port }; Database=NewAgeSolution"));
 
       services.AddControllersWithViews(options =>
       {

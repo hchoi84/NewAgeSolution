@@ -252,6 +252,7 @@ namespace ChannelAdvisorLibrary
       {
         $"{ filterBase } 'Green') and { taq } le 0",
         $"{ filterBase } 'Green') and { taq } ge 15000 and { taq } lt 19999",
+        $"{ filterBase } 'Green') and { taq } gt 19999",
         $"{ filterBase } 'Red') and { taq } ge 15000",
       };
       string expand = "Attributes,Labels";
@@ -290,7 +291,7 @@ namespace ChannelAdvisorLibrary
           InvFlag = item[_attributes].FirstOrDefault(i => i[_name].ToString() == "invflag")[_Value].ToString(),
           Label = item[_labels].FirstOrDefault(i => _labelNames.Contains(i[_name].ToString()))[_name].ToString(),
           AllName = item[_attributes].FirstOrDefault(i => i[_name].ToString() == _allName)[_Value].ToString(),
-          Qty = item["TotalAvailableQuantity"].ToString()
+          Qty = item["TotalAvailableQuantity"].ToObject<int>()
         };
 
         models.Add(model);
