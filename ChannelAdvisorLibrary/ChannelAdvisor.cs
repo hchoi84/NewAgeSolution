@@ -289,7 +289,6 @@ namespace ChannelAdvisorLibrary
         {
           Sku = item[_sku].ToString(),
           InvFlag = item[_attributes].FirstOrDefault(i => i[_name].ToString() == "invflag")[_Value].ToString(),
-          Label = item[_labels].FirstOrDefault(i => _labelNames.Contains(i[_name].ToString()))[_name].ToString(),
           AllName = item[_attributes].FirstOrDefault(i => i[_name].ToString() == _allName)[_Value].ToString(),
           Qty = item["TotalAvailableQuantity"].ToObject<int>()
         };
