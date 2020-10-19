@@ -1,82 +1,32 @@
-﻿@{ 
+﻿@{
   ViewData["Title"] = "Version History";
 }
 
-  <div class="accordion mt-3" id="history">
-    <div class="card">
-      <div class="card-header" id="historyTwoCard">
-        <h2 class="mb-0">
-          <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#historyThree" aria-expanded="false" aria-controls="historyThree">
-            Aug 06, 2020
-          </button>
-        </h2>
-      </div>
-      <div id="historyThree" class="collapse" aria-labelledby="historyTwoCard" data-parent="#history">
-        <div class="card-body">
-          <ul>
-            <li>Last Commit: aa770efa461632af40761859bde518baca66e214</li>
-          </ul>
-          <ul>
-            <li>New Task: None</li>
-            <li>Updated Task: DropShip Updater will check InvFlag and Quantity to determine whether new DropShip quantity. Please see Explanation within DropShip Updater for more information</li>
-            <li>New Feature: None</li>
-            <li>UI/UX: None</li>
-            <li>Bug Fix: None</li>
-            <li>Misc: Final version of this application has been released. Information about the final version will be shared via email</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+<div>
+  Oct 19, 2020
+  <ul>
+    <li>Optimized DropShip task to utilize less memory. Hoping this will prevent the server from crashing due to resource limitation</li>
+    <li>Fixed DropShip task returning error message due to DropShip products not having one of 5 essential labels (NPIP, MapNoShow, MapShow, Discount, and Closeout)</li>
+    <li>Updated this Version History page for easier maintenance</li>
+  </ul>
 
-    <div class="card">
-      <div class="card-header" id="historyTwoCard">
-        <h2 class="mb-0">
-          <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#historyTwo" aria-expanded="false" aria-controls="historyTwo">
-            July 24, 2020
-          </button>
-        </h2>
-      </div>
-      <div id="historyTwo" class="collapse" aria-labelledby="historyTwoCard" data-parent="#history">
-        <div class="card-body">
-          <ul>
-            <li>Last Commit: a4fb4d0067ae24332e4d05b64a36d4c7402f4b03</li>
-          </ul>
-          <ul>
-            <li>New Task: Zendesk Talk Summarizer</li>
-            <li>New Task: DropShip Updater</li>
-            <li>Updated Task: No Sales Report will no longer display result on the web. Instead it will download the result in CSV</li>
-            <li>Updated Task: Store Buffer will automatically download the result instead of waiting for the user to click a button</li>
-            <li>Updated Task: Zendesk Talk Summarizer has been updated. Previous method of acquiring exported file will be become obsolete in October. See Instruction section for how to acquire the new export file from Zenesk.</li>
-            <li>New Feature: Added Instruction, Explanation, and Objective to each task</li>
-            <li>New Feature: Added Users view to display all users and their Access Permissions (AP). AP will be later used to limit task access.</li>
-            <li>UI/UX: Properly notifies if user does not have access</li>
-            <li>UI/UX: Task names have been changed to better explain what it does</li>
-            <li>UI/UX: Updated button names for consistency</li>
-            <li>Bug Fix: Password error not displaying correctly during registration</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+  Aug 06, 2020
+  <ul>
+    <li>Updated Task: DropShip Updater will check InvFlag and Quantity to determine whether new DropShip quantity. Please see Explanation within DropShip Updater for more information</li>
+  </ul>
 
-    <div class="card">
-      <div class="card-header" id="historyOneCard">
-        <h2 class="mb-0">
-          <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#historyOne" aria-expanded="false" aria-controls="historyOne">
-            July 12, 2020
-          </button>
-        </h2>
-      </div>
-      <div id="historyOne" class="collapse" aria-labelledby="historyOneCard" data-parent="#history">
-        <div class="card-body">
-          <ul>
-            <li>Last Commit: 4b26fa5d78147c54efbf6e0c1664c5f19951121d</li>
-          </ul>
-          <ul>
-            <li>New Task: Login and registration</li>
-            <li>New Task: No Sales Report</li>
-            <li>New Task: Store Buffer</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
+  July 24, 2020
+  <ul>
+    <li>New Task: Zendesk Talk Summarizer</li>
+    <li>New Task: DropShip Updater</li>
+    <li>Updated Task: No Sales Report will no longer display result on the web. Instead it will download the result in CSV</li>
+    <li>Updated Task: Store Buffer will automatically download the result instead of waiting for the user to click a button</li>
+    <li>Updated Task: Zendesk Talk Summarizer has been updated. Previous method of acquiring exported file will be become obsolete in October. See Instruction section for how to acquire the new export file from Zenesk.</li>
+    <li>New Feature: Added Instruction, Explanation, and Objective to each task</li>
+    <li>New Feature: Added Users view to display all users and their Access Permissions (AP). AP will be later used to limit task access.</li>
+    <li>UI/UX: Properly notifies if user does not have access</li>
+    <li>UI/UX: Task names have been changed to better explain what it does</li>
+    <li>UI/UX: Updated button names for consistency</li>
+    <li>Bug Fix: Password error not displaying correctly during registration</li>
+  </ul>
+</div>

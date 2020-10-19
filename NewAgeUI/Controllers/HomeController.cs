@@ -16,6 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NewAgeUI.Models;
 using NewAgeUI.ViewModels;
+using Newtonsoft.Json.Linq;
 using SkuVaultLibrary;
 
 namespace NewAgeUI.Controllers
@@ -80,10 +81,10 @@ namespace NewAgeUI.Controllers
     public async Task<IActionResult> BufferSetter(FileImportViewModel model)
     {
       string fileExtension = Path.GetExtension(model.CSVFile.FileName);
-      if (fileExtension != ".csv") 
+      if (fileExtension != ".csv")
       {
         ModelState.AddModelError("", "File must be a CSV type");
-        return View(); 
+        return View();
       }
 
       Dictionary<string, int> activeBufferProducts = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
@@ -114,10 +115,10 @@ namespace NewAgeUI.Controllers
     [HttpPost("DropShipUpdater")]
     public async Task<IActionResult> DropShipUpdaterBatch()
     {
-      List<UpdateDropShipReportModel> products = new List<UpdateDropShipReportModel>();
+      IEnumerable<JObject> jObjects;
       try
       {
-        products = await _channelAdvisor.GetProductsToUpdate();
+        jObjects = await GetProductsToUpdateAsync();
       }
       catch (Exception e)
       {
@@ -126,23 +127,7 @@ namespace NewAgeUI.Controllers
 
       List<string> lines = new List<string>();
       Dictionary<string, int> skuAndNewQty = new Dictionary<string, int>();
-
-      foreach (var product in products)
-      {
-        lines.Add($"{product.Sku},{product.InvFlag},{product.Label},\"{product.AllName}\",{product.Qty}");
-
-        int newQty = 0;
-        if (product.InvFlag == "Green")
-        {
-          if (product.Qty <= 0) newQty = 19999;
-          else if (product.Qty > 15000 
-            && product.Qty < 19999) newQty = 19999;
-          else if (product.Qty > 19999) newQty = 0;
-        }
-        else if (product.InvFlag == "Red" && product.Qty > 15000) newQty = 0;
-        else continue;
-        skuAndNewQty.Add(product.Sku, newQty);
-      }
+      GenerateLinesAndNewQty(jObjects, lines, skuAndNewQty);
 
       await _skuVault.UpdateDropShip(skuAndNewQty);
 
@@ -155,6 +140,67 @@ namespace NewAgeUI.Controllers
       FileContentResult file = File(fileContents, contentType, fileName);
 
       return file;
+    }
+    private async Task<IEnumerable<JObject>> GetProductsToUpdateAsync()
+    {
+      string filterBase = $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq";
+      string taq = "TotalAvailableQuantity";
+      string[] filters =
+      {
+        $"{ filterBase } 'Green') and { taq } le 0",
+        $"{ filterBase } 'Green') and { taq } ge 15000 and { taq } lt 19999",
+        $"{ filterBase } 'Green') and { taq } gt 19999",
+        $"{ filterBase } 'Red') and { taq } ge 15000",
+      };
+      string expand = "Attributes,Labels";
+      string select = $"Sku,{ taq }";
+
+      List<JObject> jObjects = new List<JObject>();
+      for (var i = 0; i < filters.Length; i++)
+      {
+        try
+        {
+          jObjects.AddRange(await _channelAdvisor.GetProductsAsync(filters[i], expand, select));
+        }
+        catch (Exception e)
+        {
+          throw new Exception(e.Message, e);
+        }
+      }
+
+      return jObjects;
+    }
+
+    private void GenerateLinesAndNewQty(IEnumerable<JObject> jObjects, List<string> lines, Dictionary<string, int> skuAndNewQty)
+    {
+      string[] _labelNames = { "Closeout", "Discount", "MAPNoShow", "MAPShow", "NPIP" };
+
+      foreach (var jObject in jObjects)
+      {
+        string label = jObject["Labels"].FirstOrDefault(i => _labelNames.Contains(i["Name"].ToString()))["Name"].ToString();
+        if (string.IsNullOrEmpty(label)) continue;
+
+        string sku = jObject["Sku"].ToString();
+        string invFlag = jObject["Attributes"]
+          .FirstOrDefault(i => i["Name"].ToString() == "invflag")["Value"]
+          .ToString();
+        string allName = jObject["Attributes"]
+          .FirstOrDefault(i => i["Name"].ToString() == "All Name")["Value"]
+          .ToString();
+        int qty = jObject["TotalAvailableQuantity"].ToObject<int>();
+
+        lines.Add($"{ sku },{ invFlag },{ label },\"{ allName }\",{ qty }");
+
+        int newQty = -1;
+        if (invFlag == "Green")
+        {
+          if (qty <= 0 || (qty > 15000 && qty < 19999)) newQty = 19999;
+          else if (qty > 19999) newQty = 0;
+        }
+        else if (invFlag == "Red" && qty > 15000) newQty = 0;
+
+        if (newQty != -1) skuAndNewQty.Add(sku, newQty);
+      }
     }
     #endregion
 

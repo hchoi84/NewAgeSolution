@@ -67,7 +67,7 @@ namespace ChannelAdvisorLibrary
       }
     }
 
-    public async Task<List<JObject>> GetProductsAsync(string filter, string expand, string select)
+    public async Task<IEnumerable<JObject>> GetProductsAsync(string filter, string expand, string select)
     {
       EstablishConnection();
 
@@ -111,9 +111,9 @@ namespace ChannelAdvisorLibrary
       string filter = $"LastSaleDateUtc lt {lastSoldDate:yyyy-MM-dd}";
       string expand = "";
       string select = "ParentProductID";
-      List<string> distinctParentIds = await GetDistinctParentIdsAsync(filter, expand, select);
+      IEnumerable<string> distinctParentIds = await GetDistinctParentIdsAsync(filter, expand, select);
 
-      List<JObject> jObjects = await GetChildrenPerParentIdAsync(distinctParentIds);
+      List<JObject> jObjects = await GetChildrenPerParentIdAsync(distinctParentIds.ToList());
 
       List<NoSalesReportModel> model = ConvertToNoSalesReportModel(jObjects);
 
@@ -124,15 +124,14 @@ namespace ChannelAdvisorLibrary
       return model;
     }
 
-    private async Task<List<string>> GetDistinctParentIdsAsync(string filter, string expand, string select)
+    private async Task<IEnumerable<string>> GetDistinctParentIdsAsync(string filter, string expand, string select)
     {
-      List<JObject> jObjects = await GetProductsAsync(filter, expand, select);
+      IEnumerable<JObject> jObjects = await GetProductsAsync(filter, expand, select);
 
-      List<string> distinctParentIds = jObjects
+      IEnumerable<string> distinctParentIds = jObjects
         .Where(j => !string.IsNullOrWhiteSpace(j[select].ToObject<string>()))
         .Select(j => j[select].ToObject<string>())
-        .Distinct()
-        .ToList();
+        .Distinct();
 
       return distinctParentIds;
     }
@@ -239,64 +238,6 @@ namespace ChannelAdvisorLibrary
       }
 
       return model;
-    }
-    #endregion
-
-    #region DropShipUpdater
-    public async Task<List<UpdateDropShipReportModel>> GetProductsToUpdate()
-    {
-      string filterBase = $"ProfileId eq { GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq";
-      string taq = "TotalAvailableQuantity";
-
-      List<string> filters = new List<string>
-      {
-        $"{ filterBase } 'Green') and { taq } le 0",
-        $"{ filterBase } 'Green') and { taq } ge 15000 and { taq } lt 19999",
-        $"{ filterBase } 'Green') and { taq } gt 19999",
-        $"{ filterBase } 'Red') and { taq } ge 15000",
-      };
-      string expand = "Attributes,Labels";
-      string select = $"Sku,{ taq }";
-
-      List<UpdateDropShipReportModel> products = new List<UpdateDropShipReportModel>();
-
-      foreach (var filter in filters)
-      {
-        List<JObject> jObjects = new List<JObject>();
-
-        try
-        {
-          jObjects = await GetProductsAsync(filter, expand, select);
-        }
-        catch (Exception e)
-        {
-          throw new Exception(e.Message, e);
-        }
-
-        products.AddRange(ConvertToUpdateDropShipReportModel(jObjects));
-      }
-
-      return products;
-    }
-
-    private List<UpdateDropShipReportModel> ConvertToUpdateDropShipReportModel(List<JObject> jObjects)
-    {
-      List<UpdateDropShipReportModel> models = new List<UpdateDropShipReportModel>();
-
-      foreach (var item in jObjects)
-      {
-        UpdateDropShipReportModel model = new UpdateDropShipReportModel()
-        {
-          Sku = item[_sku].ToString(),
-          InvFlag = item[_attributes].FirstOrDefault(i => i[_name].ToString() == "invflag")[_Value].ToString(),
-          AllName = item[_attributes].FirstOrDefault(i => i[_name].ToString() == _allName)[_Value].ToString(),
-          Qty = item["TotalAvailableQuantity"].ToObject<int>()
-        };
-
-        models.Add(model);
-      }
-
-      return models;
     }
     #endregion
 
