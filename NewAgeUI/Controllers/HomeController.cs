@@ -41,19 +41,23 @@ namespace NewAgeUI.Controllers
     [HttpGet("")]
     public IActionResult Index() => View();
 
-    #region NoSalesReport
+    // NoSalesReport
     [HttpGet("NoSalesReport")]
     public IActionResult NoSalesReport() => View();
 
     [HttpPost("NoSalesReport")]
     public async Task<IActionResult> NoSalesReport(DateTime lastSoldDate)
     {
-      List<NoSalesReportModel> model = await _channelAdvisor.GetNoSalesReport(lastSoldDate);
+      IEnumerable<NoSalesReportModel> model = await _channelAdvisor.GetNoSalesReport(lastSoldDate);
 
       List<string> lines = new List<string>();
-      model.ForEach(p => lines.Add($"{ p.Sku },{ p.UPC },{p.CreateDateUtc:yyyy-MM-dd},{ p.AllName },{p.LastSaleDateUtc:yyyy-MM-dd},{ p.ProductLabel },{ p.TotalAvailableQuantity } / { p.FBA }"));
 
-      string header = "SKU,UPC,Created,All Name,Last Sold Date,Label,WH/FBA Qty";
+      foreach (var p in model)
+      {
+        lines.Add($"{ p.Sku },{ p.UPC },{p.CreateDateUtc:yyyy-MM-dd},\"{ p.AllName }\",{p.LastSaleDateUtc:yyyy-MM-dd},{ p.ProductLabel },{ p.TotalAvailableQuantity },{ p.FBA }");
+      }
+
+      string header = "SKU,UPC,Created,All Name,Last Sold Date,Label,WH Qty,FBA Qty";
       StringBuilder sb = _fileReader.GenerateSB(true, header, lines);
 
       byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
@@ -71,9 +75,8 @@ namespace NewAgeUI.Controllers
 
       return Json(true);
     }
-    #endregion
 
-    #region BufferSetter
+    // BufferSetter
     [HttpGet("BufferSetter")]
     public IActionResult BufferSetter() => View();
 
@@ -106,9 +109,8 @@ namespace NewAgeUI.Controllers
 
       return file;
     }
-    #endregion
 
-    #region DropShipUpdater
+    // DropShipUpdater
     [HttpGet("DropShipUpdater")]
     public IActionResult DropShipUpdater() => View();
 
@@ -141,6 +143,7 @@ namespace NewAgeUI.Controllers
 
       return file;
     }
+
     private async Task<IEnumerable<JObject>> GetProductsToUpdateAsync()
     {
       string filterBase = $"ProfileId eq { _channelAdvisor.GetMainProfileId() } and Attributes/Any (c:c/Name eq 'invflag' and c/Value eq";
@@ -202,9 +205,8 @@ namespace NewAgeUI.Controllers
         if (newQty != -1) skuAndNewQty.Add(sku, newQty);
       }
     }
-    #endregion
 
-    #region ZDTSummarizer
+    // ZDTSummarizer
     [HttpGet("ZDTSummarizer")]
     public IActionResult ZDTSummarizer() => View();
 
@@ -232,8 +234,8 @@ namespace NewAgeUI.Controllers
 
       return file;
     }
-    #endregion
 
+    // Other
     [HttpGet("UserList")]
     public async Task<IActionResult> UserList()
     {

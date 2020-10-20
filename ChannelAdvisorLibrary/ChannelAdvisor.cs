@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -105,17 +106,17 @@ namespace ChannelAdvisorLibrary
       return jObjects;
     }
 
-    #region NoSalesReport
-    public async Task<List<NoSalesReportModel>> GetNoSalesReport(DateTime lastSoldDate)
+    // NoSalesReport
+    public async Task<IEnumerable<NoSalesReportModel>> GetNoSalesReport(DateTime lastSoldDate)
     {
       string filter = $"LastSaleDateUtc lt {lastSoldDate:yyyy-MM-dd}";
       string expand = "";
       string select = "ParentProductID";
       IEnumerable<string> distinctParentIds = await GetDistinctParentIdsAsync(filter, expand, select);
 
-      List<JObject> jObjects = await GetChildrenPerParentIdAsync(distinctParentIds.ToList());
+      IEnumerable<JObject> jObjects = await GetChildrenPerParentIdAsync(distinctParentIds.ToList());
 
-      List<NoSalesReportModel> model = ConvertToNoSalesReportModel(jObjects);
+      IEnumerable<NoSalesReportModel> model = ConvertToNoSalesReportModel(jObjects.ToList());
 
       model = AddParentInfo(model)
         .OrderBy(m => m.Sku)
@@ -129,27 +130,26 @@ namespace ChannelAdvisorLibrary
       IEnumerable<JObject> jObjects = await GetProductsAsync(filter, expand, select);
 
       IEnumerable<string> distinctParentIds = jObjects
-        .Where(j => !string.IsNullOrWhiteSpace(j[select].ToObject<string>()))
-        .Select(j => j[select].ToObject<string>())
-        .Distinct();
+        .Select(j => j[select].ToString())
+        .Distinct()
+        .Where(s => !string.IsNullOrWhiteSpace(s));
 
       return distinctParentIds;
     }
 
-    private async Task<List<JObject>> GetChildrenPerParentIdAsync(List<string> distinctParentIds)
+    private async Task<IEnumerable<JObject>> GetChildrenPerParentIdAsync(List<string> distinctParentIds)
     {
       List<JObject> jObjects = new List<JObject>();
 
-      //Since ChannelAdvisorAPI only allows up to 10 filters, we'll request product information for every 10 parent ids
+      //Since ChannelAdvisorAPI only allows up to 10 filters, request product information for every 10 parent ids
       while (distinctParentIds.Count > 0)
       {
         bool isMoreThan10 = distinctParentIds.Count > 10;
         int x = isMoreThan10 ? 10 : distinctParentIds.Count;
 
-        List<string> first10 = distinctParentIds
+        IEnumerable<string> first10 = distinctParentIds
           .GetRange(0, x)
-          .Select(parentId => $"ParentProductId eq { parentId }")
-          .ToList();
+          .Select(parentId => $"ParentProductId eq { parentId }");
 
         distinctParentIds.RemoveRange(0, x);
 
@@ -163,62 +163,82 @@ namespace ChannelAdvisorLibrary
       return jObjects;
     }
 
-    private List<NoSalesReportModel> ConvertToNoSalesReportModel(List<JObject> jObjects)
+    private IEnumerable<NoSalesReportModel> ConvertToNoSalesReportModel(List<JObject> jObjects)
     {
-      List<int> profileIds = new List<int> { Secrets.MainProfileId, Secrets.OtherProfileId };
       List<NoSalesReportModel> model = new List<NoSalesReportModel>();
 
-      foreach (int profileId in profileIds)
+      jObjects = jObjects.OrderBy(j => j[_sku].ToString()).ToList();
+
+      while (jObjects.Count > 0)
       {
-        List<JObject> filteredByProfileId = jObjects
-          .Where(j => j[_profileId].ToObject<int>() == profileId)
-          .ToList();
+        JObject pointer = jObjects[0];
+        bool hasNext = pointer.Next != null;
 
-        foreach (var item in filteredByProfileId)
-        {
-          var fbaQty = item[_dcQuantities]
-            .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
-
-          NoSalesReportModel p = new NoSalesReportModel();
-
-          if (profileId == Secrets.OtherProfileId)
-          {
-            p = model
-              .FirstOrDefault(m => m.Sku == item[_sku]
-              .ToObject<string>());
-
-            if (p != null)
-            {
-              DateTime? lsd = item[_lastSaleDateUtc].ToObject<DateTime?>();
-              p.LastSaleDateUtc = p.LastSaleDateUtc > lsd ? lsd : p.LastSaleDateUtc;
-              p.FBA += fbaQty != null ? fbaQty[_availableQuantity].ToObject<int>() : 0;
-              continue;
-            }
-          }
-
-          string allName = item[_attributes]
-            .FirstOrDefault(i => i[_name].ToObject<string>() == _allName)[_Value]
-            .ToObject<string>();
-
-          p = item.ToObject<NoSalesReportModel>();
-          p.FBA = fbaQty != null ? fbaQty[_availableQuantity].ToObject<int>() : 0;
-          p.ItemName = item[_attributes]
+        string sku = pointer[_sku].ToString();
+        string upc = pointer["UPC"].ToString();
+        string parentSku = pointer["ParentSku"].ToString();
+        DateTime createDateUtc = pointer["CreateDateUtc"].ToObject<DateTime>();
+        int totalAvailQty = pointer["TotalAvailableQuantity"].ToObject<int>();
+        string itemName = pointer[_attributes]
             .FirstOrDefault(i => i[_name].ToObject<string>() == _itemName)[_Value]
             .ToObject<string>();
-          p.AllName = allName.Replace(p.ItemName, string.Empty);
-          p.ProductLabel = item[_labels]
+        string allName = pointer[_attributes]
+            .FirstOrDefault(i => i[_name].ToObject<string>() == _allName)[_Value]
+            .ToObject<string>()
+            .Replace(itemName, string.Empty);
+        string label = pointer[_labels]
             .FirstOrDefault(i => _labelNames.Contains(i[_name].ToObject<string>()))[_name]
             .ToObject<string>();
+        DateTime? lastSaleDateUtc;
+        int fbaQty;
+        
+        JToken fba = pointer[_dcQuantities]
+          .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
 
-          model.Add(p);
+        if (hasNext && pointer[_sku].ToString() == pointer.Next[_sku].ToString())
+        {
+          DateTime? pointerLSDUtc = pointer[_lastSaleDateUtc].ToObject<DateTime?>();
+          DateTime? nextLSDUtc = pointer.Next[_lastSaleDateUtc].ToObject<DateTime?>();
+          lastSaleDateUtc = pointerLSDUtc > nextLSDUtc ? pointerLSDUtc : nextLSDUtc;
+
+          JToken nextFba = pointer.Next[_dcQuantities]
+          .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
+
+          int pointerFbaQty = fba != null ? fba[_availableQuantity].ToObject<int>() : 0;
+          int nextFbaQty = nextFba != null ? nextFba[_availableQuantity].ToObject<int>() : 0;
+          fbaQty = pointerFbaQty + nextFbaQty;
+
+          jObjects.RemoveRange(0, 2);
         }
+        else
+        {
+          lastSaleDateUtc = pointer["LastSaleDateUtc"].ToObject<DateTime?>();
+          fbaQty = fba != null ? fba[_availableQuantity].ToObject<int>() : 0;
+
+          jObjects.RemoveRange(0, 1);
+        }
+
+        model.Add(new NoSalesReportModel
+        {
+          Sku = sku,
+          UPC = upc,
+          ParentSKU = parentSku,
+          CreateDateUtc = createDateUtc,
+          TotalAvailableQuantity = totalAvailQty,
+          LastSaleDateUtc = lastSaleDateUtc,
+          FBA = fbaQty,
+          ItemName = itemName,
+          AllName = allName,
+          ProductLabel = label
+        });
       }
 
       return model;
     }
 
-    private List<NoSalesReportModel> AddParentInfo(List<NoSalesReportModel> model)
+    private IEnumerable<NoSalesReportModel> AddParentInfo(IEnumerable<NoSalesReportModel> model)
     {
+      List<NoSalesReportModel> m = model.ToList();
       //Create parent information
       List<IGrouping<string, NoSalesReportModel>> groupedByParentSku = model.GroupBy(m => m.ParentSKU).ToList();
 
@@ -234,12 +254,11 @@ namespace ChannelAdvisorLibrary
           ProductLabel = group.First().ProductLabel
         };
 
-        model.Add(prod);
+        m.Add(prod);
       }
 
-      return model;
+      return m;
     }
-    #endregion
 
     public List<string> GetAcctNames() => new List<string> { GetMainAcctName(), GetOtherAcctName() };
     public string GetMainAcctName() => Secrets.MainName;

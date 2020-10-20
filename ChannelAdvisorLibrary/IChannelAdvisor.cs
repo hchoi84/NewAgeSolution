@@ -9,7 +9,7 @@ namespace ChannelAdvisorLibrary
   public interface IChannelAdvisor
   {
     Task<IEnumerable<JObject>> GetProductsAsync(string filter, string expand, string select);
-    Task<List<NoSalesReportModel>> GetNoSalesReport(DateTime lastSoldDate);
+    Task<IEnumerable<NoSalesReportModel>> GetNoSalesReport(DateTime lastSoldDate);
 
     List<string> GetAcctNames();
     string GetMainAcctName();
