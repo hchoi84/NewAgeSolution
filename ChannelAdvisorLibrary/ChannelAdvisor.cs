@@ -186,9 +186,9 @@ namespace ChannelAdvisorLibrary
             .FirstOrDefault(i => i[_name].ToObject<string>() == _allName)[_Value]
             .ToObject<string>()
             .Replace(itemName, string.Empty);
-        string label = pointer[_labels]
-            .FirstOrDefault(i => _labelNames.Contains(i[_name].ToObject<string>()))[_name]
-            .ToObject<string>();
+        JToken label = pointer[_labels]
+            .FirstOrDefault(i => _labelNames.Contains(i[_name].ToObject<string>()));
+        string labelValue = label != null ? label[_name].ToString() : "No Label";
         DateTime? lastSaleDateUtc;
         int fbaQty;
         
@@ -229,7 +229,7 @@ namespace ChannelAdvisorLibrary
           FBA = fbaQty,
           ItemName = itemName,
           AllName = allName,
-          ProductLabel = label
+          ProductLabel = labelValue
         });
       }
 

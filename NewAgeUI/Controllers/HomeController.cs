@@ -180,8 +180,9 @@ namespace NewAgeUI.Controllers
 
       foreach (var jObject in jObjects)
       {
-        string label = jObject["Labels"].FirstOrDefault(i => _labelNames.Contains(i["Name"].ToString()))["Name"].ToString();
-        if (string.IsNullOrEmpty(label)) continue;
+        JToken label = jObject["Labels"].FirstOrDefault(i => _labelNames.Contains(i["Name"].ToString()));
+        string labelValue = label != null ? label["Name"].ToString() : string.Empty;
+        if (string.IsNullOrEmpty(labelValue)) continue;
 
         string sku = jObject["Sku"].ToString();
         string invFlag = jObject["Attributes"]
@@ -192,7 +193,7 @@ namespace NewAgeUI.Controllers
           .ToString();
         int qty = jObject["TotalAvailableQuantity"].ToObject<int>();
 
-        lines.Add($"{ sku },{ invFlag },{ label },\"{ allName }\",{ qty }");
+        lines.Add($"{ sku },{ invFlag },{ labelValue },\"{ allName }\",{ qty }");
 
         int newQty = -1;
         if (invFlag == "Green")
