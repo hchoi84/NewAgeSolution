@@ -155,7 +155,7 @@ namespace ChannelAdvisorLibrary
 
         string filter = string.Join(" or ", first10);
         string expand = "Attributes,Labels,DCQuantities";
-        string select = "ProfileId,Sku,UPC,ParentSku,CreateDateUtc,LastSaleDateUtc,TotalAvailableQuantity";
+        string select = "Sku,UPC,ParentSku,CreateDateUtc,LastSaleDateUtc,WarehouseLocation";
 
         jObjects.AddRange(await GetProductsAsync(filter, expand, select));
       }
@@ -172,37 +172,43 @@ namespace ChannelAdvisorLibrary
       while (jObjects.Count > 0)
       {
         JObject pointer = jObjects[0];
-        bool hasNext = pointer.Next != null;
+        JObject nextPointer = new JObject();
 
-        string sku = pointer[_sku].ToString();
-        string upc = pointer["UPC"].ToString();
-        string parentSku = pointer["ParentSku"].ToString();
-        DateTime createDateUtc = pointer["CreateDateUtc"].ToObject<DateTime>();
-        int totalAvailQty = pointer["TotalAvailableQuantity"].ToObject<int>();
-        string itemName = pointer[_attributes]
-            .FirstOrDefault(i => i[_name].ToObject<string>() == _itemName)[_Value]
-            .ToObject<string>();
-        string allName = pointer[_attributes]
-            .FirstOrDefault(i => i[_name].ToObject<string>() == _allName)[_Value]
-            .ToObject<string>()
-            .Replace(itemName, string.Empty);
-        JToken label = pointer[_labels]
-            .FirstOrDefault(i => _labelNames.Contains(i[_name].ToObject<string>()));
-        string labelValue = label != null ? label[_name].ToString() : "No Label";
+        if (jObjects.Count > 1)
+        {
+          nextPointer = jObjects[1];
+        }
+        else
+        {
+          nextPointer = null;
+        }
+
+        bool hasStoreLocation = pointer["WarehouseLocation"].ToString().Contains("Store");
+        int storeQty = 0;
+
+        if (hasStoreLocation)
+        {
+          storeQty = int.Parse(pointer["WarehouseLocation"].ToString()
+            .Split(",")
+            .FirstOrDefault(location => location.Contains("STORE"))
+            .Replace("STORE(", string.Empty)
+            .Replace(")", string.Empty));
+        }
+
+        bool hasNext = nextPointer != null;
         DateTime? lastSaleDateUtc;
         int fbaQty;
-        
         JToken fba = pointer[_dcQuantities]
           .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
 
-        if (hasNext && pointer[_sku].ToString() == pointer.Next[_sku].ToString())
+        if (hasNext && pointer[_sku].ToString() == nextPointer[_sku].ToString())
         {
           DateTime? pointerLSDUtc = pointer[_lastSaleDateUtc].ToObject<DateTime?>();
-          DateTime? nextLSDUtc = pointer.Next[_lastSaleDateUtc].ToObject<DateTime?>();
+          DateTime? nextLSDUtc = nextPointer[_lastSaleDateUtc].ToObject<DateTime?>();
           lastSaleDateUtc = pointerLSDUtc > nextLSDUtc ? pointerLSDUtc : nextLSDUtc;
 
-          JToken nextFba = pointer.Next[_dcQuantities]
-          .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
+          JToken nextFba = nextPointer[_dcQuantities]
+            .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
 
           int pointerFbaQty = fba != null ? fba[_availableQuantity].ToObject<int>() : 0;
           int nextFbaQty = nextFba != null ? nextFba[_availableQuantity].ToObject<int>() : 0;
@@ -218,18 +224,32 @@ namespace ChannelAdvisorLibrary
           jObjects.RemoveRange(0, 1);
         }
 
+        string itemName = pointer[_attributes]
+          .FirstOrDefault(i => i[_name].ToObject<string>() == _itemName)[_Value]
+          .ToObject<string>();
+        JToken label = pointer[_labels]
+          .FirstOrDefault(i => _labelNames.Contains(i[_name].ToObject<string>()));
+
         model.Add(new NoSalesReportModel
         {
-          Sku = sku,
-          UPC = upc,
-          ParentSKU = parentSku,
-          CreateDateUtc = createDateUtc,
-          TotalAvailableQuantity = totalAvailQty,
+          Sku = pointer[_sku].ToString(),
+          UPC = pointer["UPC"].ToString(),
+          ParentSKU = pointer["ParentSku"].ToString(),
+          CreateDateUtc = pointer["CreateDateUtc"].ToObject<DateTime>(),
+          WHQuantity = pointer[_dcQuantities]
+            .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == 0)[_availableQuantity]
+            .ToObject<int>(),
           LastSaleDateUtc = lastSaleDateUtc,
-          FBA = fbaQty,
-          ItemName = itemName,
-          AllName = allName,
-          ProductLabel = labelValue
+          FBAQuantity = fbaQty,
+          StoreQty = storeQty,
+          ItemName = pointer[_attributes]
+            .FirstOrDefault(i => i[_name].ToObject<string>() == _itemName)[_Value]
+            .ToObject<string>(),
+          AllName = pointer[_attributes]
+            .FirstOrDefault(i => i[_name].ToObject<string>() == _allName)[_Value]
+            .ToObject<string>()
+            .Replace(itemName, string.Empty),
+          ProductLabel = label != null ? label[_name].ToString() : "No Label"
         });
       }
 
@@ -248,8 +268,9 @@ namespace ChannelAdvisorLibrary
         {
           Sku = group.First().ParentSKU,
           CreateDateUtc = group.First().CreateDateUtc,
-          TotalAvailableQuantity = group.Sum(g => g.TotalAvailableQuantity),
-          FBA = group.Sum(g => g.FBA),
+          WHQuantity = group.Sum(g => g.WHQuantity),
+          FBAQuantity = group.Sum(g => g.FBAQuantity),
+          StoreQty = group.Sum(g => g.StoreQty),
           AllName = group.First().ItemName,
           ProductLabel = group.First().ProductLabel
         };

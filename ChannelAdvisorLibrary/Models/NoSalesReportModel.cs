@@ -8,11 +8,12 @@ namespace ChannelAdvisorLibrary.Models
     public string UPC { get; set; }
     public string ParentSKU { get; set; }
     public DateTime CreateDateUtc { get; set; }
-    public int TotalAvailableQuantity { get; set; }
+    public int WHQuantity { get; set; }
+    public int StoreQty { get; set; }
     public DateTime? LastSaleDateUtc { get; set; }
 
     //Under DCQuantities
-    public int FBA { get; set; }
+    public int FBAQuantity { get; set; }
 
     //Under Attributes
     public string ItemName { get; set; }

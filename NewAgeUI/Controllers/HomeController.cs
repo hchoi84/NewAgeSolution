@@ -54,10 +54,10 @@ namespace NewAgeUI.Controllers
 
       foreach (var p in model)
       {
-        lines.Add($"{ p.Sku },{ p.UPC },{p.CreateDateUtc:yyyy-MM-dd},\"{ p.AllName }\",{p.LastSaleDateUtc:yyyy-MM-dd},{ p.ProductLabel },{ p.TotalAvailableQuantity },{ p.FBA }");
+        lines.Add($"{ p.Sku },{ p.UPC },{p.CreateDateUtc:yyyy-MM-dd},\"{ p.AllName }\",{p.LastSaleDateUtc:yyyy-MM-dd},{ p.ProductLabel },{ p.WHQuantity },{ p.FBAQuantity },{ p.StoreQty }");
       }
 
-      string header = "SKU,UPC,Created,All Name,Last Sold Date,Label,WH Qty,FBA Qty";
+      string header = "SKU,UPC,Created,All Name,Last Sold Date,Label,WH Qty,FBA Qty,STR Qty";
       StringBuilder sb = _fileReader.GenerateSB(true, header, lines);
 
       byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
