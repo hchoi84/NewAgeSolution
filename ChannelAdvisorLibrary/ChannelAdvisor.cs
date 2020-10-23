@@ -19,7 +19,6 @@ namespace ChannelAdvisorLibrary
     private readonly string _appForm = "application/x-www-form-urlencoded";
     private readonly string _appJson = "application/json";
     private readonly string _odataNextLink = "@odata.nextLink";
-    private readonly string _profileId = "ProfileID";
     private readonly string _dcQuantities = "DCQuantities";
     private readonly string _distributionCenterID = "DistributionCenterID";
     private readonly string _sku = "Sku";
@@ -111,10 +110,12 @@ namespace ChannelAdvisorLibrary
     {
       string filter = $"LastSaleDateUtc lt {lastSoldDate:yyyy-MM-dd}";
       string expand = "";
-      string select = "ParentProductID";
-      IEnumerable<string> distinctParentIds = await GetDistinctParentIdsAsync(filter, expand, select);
+      string select = "ParentSku";
+      IEnumerable<string> distinctParentIds = await GetDistinctParentSkusAsync(filter, expand, select);
 
-      IEnumerable<JObject> jObjects = await GetChildrenPerParentIdAsync(distinctParentIds.ToList());
+      IEnumerable<int> parentIds = await GetParentIds(distinctParentIds);
+
+      IEnumerable<JObject> jObjects = await GetChildrenPerParentIdAsync(parentIds.ToList());
 
       IEnumerable<NoSalesReportModel> model = ConvertToNoSalesReportModel(jObjects.ToList());
 
@@ -125,40 +126,72 @@ namespace ChannelAdvisorLibrary
       return model;
     }
 
-    private async Task<IEnumerable<string>> GetDistinctParentIdsAsync(string filter, string expand, string select)
+    private async Task<IEnumerable<string>> GetDistinctParentSkusAsync(string filter, string expand, string select)
     {
       IEnumerable<JObject> jObjects = await GetProductsAsync(filter, expand, select);
 
-      IEnumerable<string> distinctParentIds = jObjects
+      IEnumerable<string> distinctParentSkus = jObjects
         .Select(j => j[select].ToString())
         .Distinct()
-        .Where(s => !string.IsNullOrWhiteSpace(s));
+        .Where(parentSku => !string.IsNullOrWhiteSpace(parentSku));
 
-      return distinctParentIds;
+      return distinctParentSkus;
     }
 
-    private async Task<IEnumerable<JObject>> GetChildrenPerParentIdAsync(List<string> distinctParentIds)
+    private async Task<IEnumerable<int>> GetParentIds(IEnumerable<string> distinctParentSkus)
+    {
+      List<string> filters = new List<string>();
+      List<JObject> jObjects = new List<JObject>();
+      string filter = "";
+      string expand = "";
+      string select = "ID";
+
+      foreach (string parentSku in distinctParentSkus)
+      {
+        if (filters.Count == 0) filters.Add("IsParent eq true");
+        filters.Add($"Sku eq '{ parentSku }'");
+
+        if (filters.Count == 10 || parentSku == distinctParentSkus.Last())
+        {
+          filter = $"{ filters[0] } and ({ string.Join(" or ", filters.GetRange(1, filters.Count - 1)) })";
+          jObjects.AddRange(await GetProductsAsync(filter, expand, select));
+          filters.Clear();
+        }
+      }
+
+      IEnumerable<int> parentIds = jObjects
+        .Select(j => j[select].ToObject<int>());
+
+      return parentIds;
+    }
+
+    private async Task<IEnumerable<JObject>> GetChildrenPerParentIdAsync(List<int> parentIds)
     {
       List<JObject> jObjects = new List<JObject>();
 
       //Since ChannelAdvisorAPI only allows up to 10 filters, request product information for every 10 parent ids
-      while (distinctParentIds.Count > 0)
+      while (parentIds.Count > 0)
       {
-        bool isMoreThan10 = distinctParentIds.Count > 10;
-        int x = isMoreThan10 ? 10 : distinctParentIds.Count;
+        bool isMoreThan10 = parentIds.Count > 10;
+        int x = isMoreThan10 ? 10 : parentIds.Count;
 
-        IEnumerable<string> first10 = distinctParentIds
+        IEnumerable<string> first10 = parentIds
           .GetRange(0, x)
-          .Select(parentId => $"ParentProductId eq { parentId }");
+          .Select(parentId => $"ParentProductID eq { parentId }");
 
-        distinctParentIds.RemoveRange(0, x);
+        parentIds.RemoveRange(0, x);
 
         string filter = string.Join(" or ", first10);
         string expand = "Attributes,Labels,DCQuantities";
-        string select = "Sku,UPC,ParentSku,CreateDateUtc,LastSaleDateUtc,WarehouseLocation";
+        string select = "ProfileID,Sku,UPC,ParentSku,CreateDateUtc,LastSaleDateUtc,WarehouseLocation";
 
         jObjects.AddRange(await GetProductsAsync(filter, expand, select));
       }
+
+      jObjects = jObjects
+        .OrderBy(j => j[_sku])
+        .ThenByDescending(j => j["ProfileID"])
+        .ToList();
 
       return jObjects;
     }
@@ -167,21 +200,13 @@ namespace ChannelAdvisorLibrary
     {
       List<NoSalesReportModel> model = new List<NoSalesReportModel>();
 
-      jObjects = jObjects.OrderBy(j => j[_sku].ToString()).ToList();
-
       while (jObjects.Count > 0)
       {
         JObject pointer = jObjects[0];
         JObject nextPointer = new JObject();
 
-        if (jObjects.Count > 1)
-        {
-          nextPointer = jObjects[1];
-        }
-        else
-        {
-          nextPointer = null;
-        }
+        if (jObjects.Count > 1) nextPointer = jObjects[1];
+        else nextPointer = null;
 
         bool hasStoreLocation = pointer["WarehouseLocation"].ToString().Contains("Store");
         int storeQty = 0;
@@ -197,9 +222,9 @@ namespace ChannelAdvisorLibrary
 
         bool hasNext = nextPointer != null;
         DateTime? lastSaleDateUtc;
-        int fbaQty;
         JToken fba = pointer[_dcQuantities]
           .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
+        int fbaQty;
 
         if (hasNext && pointer[_sku].ToString() == nextPointer[_sku].ToString())
         {
@@ -208,7 +233,7 @@ namespace ChannelAdvisorLibrary
           lastSaleDateUtc = pointerLSDUtc > nextLSDUtc ? pointerLSDUtc : nextLSDUtc;
 
           JToken nextFba = nextPointer[_dcQuantities]
-            .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -4);
+            .FirstOrDefault(i => i[_distributionCenterID].ToObject<int>() == -2);
 
           int pointerFbaQty = fba != null ? fba[_availableQuantity].ToObject<int>() : 0;
           int nextFbaQty = nextFba != null ? nextFba[_availableQuantity].ToObject<int>() : 0;
@@ -218,7 +243,7 @@ namespace ChannelAdvisorLibrary
         }
         else
         {
-          lastSaleDateUtc = pointer["LastSaleDateUtc"].ToObject<DateTime?>();
+          lastSaleDateUtc = pointer[_lastSaleDateUtc].ToObject<DateTime?>();
           fbaQty = fba != null ? fba[_availableQuantity].ToObject<int>() : 0;
 
           jObjects.RemoveRange(0, 1);
@@ -242,9 +267,7 @@ namespace ChannelAdvisorLibrary
           LastSaleDateUtc = lastSaleDateUtc,
           FBAQuantity = fbaQty,
           StoreQty = storeQty,
-          ItemName = pointer[_attributes]
-            .FirstOrDefault(i => i[_name].ToObject<string>() == _itemName)[_Value]
-            .ToObject<string>(),
+          ItemName = itemName,
           AllName = pointer[_attributes]
             .FirstOrDefault(i => i[_name].ToObject<string>() == _allName)[_Value]
             .ToObject<string>()
