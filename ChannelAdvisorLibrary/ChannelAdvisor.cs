@@ -208,7 +208,7 @@ namespace ChannelAdvisorLibrary
         if (jObjects.Count > 1) nextPointer = jObjects[1];
         else nextPointer = null;
 
-        bool hasStoreLocation = pointer["WarehouseLocation"].ToString().Contains("Store");
+        bool hasStoreLocation = pointer["WarehouseLocation"].ToString().Contains("STORE");
         int storeQty = 0;
 
         if (hasStoreLocation)
