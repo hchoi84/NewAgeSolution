@@ -182,10 +182,11 @@ namespace ChannelAdvisorLibrary
         parentIds.RemoveRange(0, x);
 
         string filter = string.Join(" or ", first10);
-        string expand = "Attributes,Labels,DCQuantities";
-        string select = "ProfileID,Sku,UPC,ParentSku,CreateDateUtc,LastSaleDateUtc,WarehouseLocation";
+        string expand = "Attributes($filter=Name eq 'All Name' or Name eq 'Item Name'),Labels,DCQuantities";
+        string select = "Sku,UPC,ParentSku,CreateDateUtc,LastSaleDateUtc,WarehouseLocation";
 
-        jObjects.AddRange(await GetProductsAsync(filter, expand, select));
+        var result = await GetProductsAsync(filter, expand, select);
+        jObjects.AddRange(result);
       }
 
       jObjects = jObjects
