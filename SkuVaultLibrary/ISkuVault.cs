@@ -5,7 +5,7 @@ namespace SkuVaultLibrary
 {
   public interface ISkuVault
   {
-    Task<Dictionary<string, int>> GetProductsToUpdate(Dictionary<string, int> activeBufferProducts);
+    //Task<Dictionary<string, int>> GetProductsToUpdate(Dictionary<string, int> activeBufferProducts);
 
     Task UpdateDropShip(Dictionary<string, int> skuAndNewQty);
   }
