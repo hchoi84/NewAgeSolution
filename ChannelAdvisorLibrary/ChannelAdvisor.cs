@@ -37,7 +37,7 @@ namespace ChannelAdvisorLibrary
       "Closeout", "Discount", "MAPNoShow", "MAPShow", "NPIP"
     };
 
-    private void EstablishConnection()
+    private async Task EstablishConnectionAsync()
     {
       if (Secrets.TokenExpireDateTime < DateTime.Now || Secrets.TokenExpireDateTime == null)
       {
@@ -58,9 +58,9 @@ namespace ChannelAdvisorLibrary
         };
 
         HttpClient client = new HttpClient();
-        HttpResponseMessage response = client.SendAsync(request).Result;
+        HttpResponseMessage response = await client.SendAsync(request);
         HttpContent content = response.Content;
-        string json = content.ReadAsStringAsync().Result;
+        string json = await content.ReadAsStringAsync();
         JObject result = JObject.Parse(json);
         Secrets.AccessToken = result[_accessToken].ToString();
         Secrets.TokenExpireDateTime = DateTime.Now.AddSeconds(Convert.ToDouble(result[_expiresIn]) - Secrets.TokenExpireBuffer);
@@ -69,8 +69,7 @@ namespace ChannelAdvisorLibrary
 
     public async Task<IEnumerable<JObject>> GetProductsAsync(string filter, string expand, string select)
     {
-      EstablishConnection();
-
+      await EstablishConnectionAsync();
       string reqUri = $"https://api.channeladvisor.com/v1/Products?access_token={ Secrets.AccessToken }";
 
       if (!string.IsNullOrWhiteSpace(filter)) reqUri += $"&$filter={ filter }";
@@ -81,6 +80,7 @@ namespace ChannelAdvisorLibrary
 
       while (reqUri != null)
       {
+        await EstablishConnectionAsync();
         string result;
 
         using (HttpClient client = new HttpClient())
@@ -303,6 +303,38 @@ namespace ChannelAdvisorLibrary
       }
 
       return m;
+    }
+
+    public async Task<List<JObject>> GetForBufferAsync()
+    {
+      string filter = $"ProfileId eq 52000682 and IsParent eq false and WarehouseLocation ne 'Out of Stock(0)' and WarehouseLocation ne 'DROPSHIP(19999)' and WarehouseLocation ne null";
+      string expand = "Attributes($filter=Name eq 'bc category tree')";
+      string select = "Sku,WarehouseLocation";
+
+      List<JObject> products = (await GetProductsAsync(filter, expand, select)).ToList();
+      List<JObject> filtered = new List<JObject>();
+
+      for (int i = 0; i < products.Count(); i++)
+      {
+        List<string> locations = products[i]["WarehouseLocation"].ToString().Split(",").ToList();
+        string storeLoc = locations.FirstOrDefault(x => x.Contains("STORE"));
+        if (storeLoc == null)
+        {
+          continue;
+        }
+        else
+        {
+          string[] mainCategoriesForWeb = { "Bags & Carts", "Bags and Carts", "Golf Clubs" };
+          string mainCategory = products[i]["Attributes"][0]["Value"].ToString().Split("/")[0];
+          filtered.Add(new JObject(
+            new JProperty("SKU", products[i]["Sku"]),
+            new JProperty("Qty", int.Parse(storeLoc.Substring(6, storeLoc.IndexOf(")") - 6))),
+            new JProperty("isForWeb", mainCategoriesForWeb.Contains(mainCategory))
+            ));
+        }
+      }
+
+      return filtered;
     }
 
     public List<string> GetAcctNames() => new List<string> { GetMainAcctName(), GetOtherAcctName() };

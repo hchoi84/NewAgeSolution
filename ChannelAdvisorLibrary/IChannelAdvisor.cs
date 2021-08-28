@@ -15,5 +15,6 @@ namespace ChannelAdvisorLibrary
     string GetMainAcctName();
     string GetOtherAcctName();
     int GetMainProfileId();
+    Task<List<JObject>> GetForBufferAsync();
   }
 }
