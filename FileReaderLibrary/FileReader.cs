@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace FileReaderLibrary
 {
@@ -17,25 +18,25 @@ namespace FileReaderLibrary
       string sku = "SKU";
       string bufferQty = "Buffer quantity";
 
-      Dictionary<string, int> headerIndex = new Dictionary<string, int>
-      { { sku, 0 }, {bufferQty, 0 } };
-
-      List<string> lines = new List<string>();
       Stream stream = file.OpenReadStream();
-      Dictionary<string, int> result = new Dictionary<string, int>();
-
+      List<string> lines = new List<string>();
       using (var reader = new StreamReader(stream))
       {
         while (reader.Peek() >= 0) lines.Add(await reader.ReadLineAsync());
       }
 
+      Dictionary<string, int> headerIndex = new Dictionary<string, int>
+      {
+        { sku, 0 },
+        { bufferQty, 0 }
+      };
       TextFieldParser parser = new TextFieldParser(new StringReader(lines[0]));
       parser.SetDelimiters(",");
       List<string> headers = parser.ReadFields().ToList();
-
       headerIndex[sku] = headers.IndexOf(sku);
       headerIndex[bufferQty] = headers.IndexOf(bufferQty);
 
+      Dictionary<string, int> result = new Dictionary<string, int>();
       foreach (string line in lines.Skip(1))
       {
         parser = new TextFieldParser(new StringReader(line));
@@ -52,22 +53,62 @@ namespace FileReaderLibrary
     }
 
     #region BufferSetter
-    public StringBuilder ConvertToStoreBufferSB(
-      bool includeHeader,
-      Dictionary<string, int> productsToUpdate,
-      string channelName)
+    public StringBuilder GenerateBufferImportSB(Dictionary<string, int> fromFile, List<JObject> fromCA)
     {
-     string header = "SKU,Code,Channel Name,Do not send quantity for this SKU,Include incoming quantity mode,Buffer Quantity Mode,Buffer quantity,Maximum quantity to push mode,Maximum quantity to push,Push constant quantity mode,Push constant quantity";
+      StringBuilder sb = new StringBuilder();
+      sb.AppendLine("SKU,Code,Channel Name,Do not send quantity for this SKU,Include incoming quantity mode,Buffer Quantity Mode,Buffer quantity,Maximum quantity to push mode,Maximum quantity to push,Push constant quantity mode,Push constant quantity");
 
-      List<string> lines = new List<string>();
-      foreach (var product in productsToUpdate)
+      foreach (JObject pCA in fromCA)
       {
-        string bufferQuantityMode = product.Value == 0 ? "Off" : "Subtraction";
-
-        lines.Add($"{ product.Key },,{ channelName },Off,Off,{ bufferQuantityMode },{ product.Value },Off,20000,Off,0");
+        KeyValuePair<string, int> pFile = fromFile.FirstOrDefault(x => x.Key == pCA["SKU"].ToString());
+        if (pFile.Key == null)
+        {
+          // add pCA to lines
+          string bufferMode = (int)pCA["Qty"] <= 0 ? "Off" : "Subtraction";
+          int bufferQty = (int)pCA["Qty"] <= 0 ? 0 : (int)pCA["Qty"];
+          sb.AppendLine($"{ pCA["SKU"] },,CA Golfio,Off,Off,{ bufferMode },{ bufferQty },Off,20000,Off,0");
+          sb.AppendLine($"{ pCA["SKU"] },,CA GB,Off,Off,{ bufferMode },{ bufferQty },Off,20000,Off,0");
+          if (!(bool)pCA["isForWeb"])
+          {
+            sb.AppendLine($"{ pCA["SKU"] },,BC Golfio,Off,Off,{ bufferMode },{ bufferQty },Off,20000,Off,0");
+          }
+        }
+        else if (pFile.Value != (int)pCA["Qty"])
+        {
+          // delete pFile in fromFile
+          fromFile.Remove(pFile.Key);
+          // add pCA to lines
+          string bufferMode = (int)pCA["Qty"] <= 0 ? "Off" : "Subtraction";
+          int bufferQty = (int)pCA["Qty"] <= 0 ? 0 : (int)pCA["Qty"];
+          sb.AppendLine($"{ pCA["SKU"] },,CA Golfio,Off,Off,{ bufferMode },{ bufferQty },Off,20000,Off,0");
+          sb.AppendLine($"{ pCA["SKU"] },,CA GB,Off,Off,{ bufferMode },{ bufferQty },Off,20000,Off,0");
+          if (!(bool)pCA["isForWeb"])
+          {
+            sb.AppendLine($"{ pCA["SKU"] },,BC Golfio,Off,Off,{ bufferMode },{ bufferQty },Off,20000,Off,0");
+          }
+        }
+        else
+        {
+          // delete pFile in fromFile
+          fromFile.Remove(pFile.Key);
+        }
       }
 
-      return GenerateSB(includeHeader, header, lines);
+      foreach (var pFile in fromFile)
+      {
+        sb.AppendLine($"{ pFile.Key },,CA Golfio,Off,Off,Off,0,Off,20000,Off,0");
+        sb.AppendLine($"{ pFile.Key },,CA GB,Off,Off,Off,0,Off,20000,Off,0");
+        sb.AppendLine($"{ pFile.Key },,BC Golfio,Off,Off,Off,0,Off,20000,Off,0");
+      }
+
+      //foreach (var product in productsToUpdate)
+      //{
+      //  string bufferQuantityMode = product.Value == 0 ? "Off" : "Subtraction";
+
+      //  lines.Add($"{ product.Key },,{ channelName },Off,Off,{ bufferQuantityMode },{ product.Value },Off,20000,Off,0");
+      //}
+
+      return sb;
     }
     #endregion
 
