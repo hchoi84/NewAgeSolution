@@ -9,6 +9,7 @@ using ChannelAdvisorLibrary;
 using ChannelAdvisorLibrary.Models;
 using FileReaderLibrary;
 using FileReaderLibrary.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -21,6 +22,7 @@ using SkuVaultLibrary;
 
 namespace NewAgeUI.Controllers
 {
+  //[AllowAnonymous]
   public class HomeController : Controller
   {
     private readonly ILogger<HomeController> _logger;
@@ -90,17 +92,19 @@ namespace NewAgeUI.Controllers
         return View();
       }
 
-      Dictionary<string, int> activeBufferProducts = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
-      Dictionary<string, int> productsToUpdate = await _skuVault.GetProductsToUpdate(activeBufferProducts);
+      Dictionary<string, int> fromFile = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
+      List<JObject> fromCA = await _channelAdvisor.GetForBufferAsync();
+      StringBuilder sb = _fileReader.GenerateBufferImportSB(fromFile, fromCA);
+      //Dictionary<string, int> productsToUpdate = await _skuVault.GetProductsToUpdate(activeBufferProducts);
 
-      StringBuilder sb = new StringBuilder();
-      foreach (var accountName in _channelAdvisor.GetAcctNames())
-      {
-        sb.Append(_fileReader.ConvertToStoreBufferSB(
-          sb.Length == 0,
-          productsToUpdate,
-          accountName));
-      }
+      //StringBuilder sb = new StringBuilder();
+      //foreach (var accountName in _channelAdvisor.GetAcctNames())
+      //{
+      //  sb.Append(_fileReader.ConvertToStoreBufferSB(
+      //    sb.Length == 0,
+      //    productsToUpdate,
+      //    accountName));
+      //}
 
       byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
       string contentType = "text/csv";
@@ -108,6 +112,7 @@ namespace NewAgeUI.Controllers
       FileContentResult file = File(fileContent, contentType, fileName);
 
       return file;
+      //return Json(fromCA);
     }
 
     // DropShipUpdater
