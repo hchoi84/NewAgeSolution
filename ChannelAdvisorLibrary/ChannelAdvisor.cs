@@ -307,7 +307,7 @@ namespace ChannelAdvisorLibrary
 
     public async Task<List<JObject>> GetForBufferAsync()
     {
-      string filter = $"ProfileId eq 52000682 and IsParent eq false and WarehouseLocation ne 'Out of Stock(0)' and WarehouseLocation ne 'DROPSHIP(19999)' and WarehouseLocation ne null";
+      string filter = $"ProfileId eq 52000682 and IsParent eq false and WarehouseLocation ne 'Out of Stock(0)' and WarehouseLocation ne 'DROPSHIP(19999)' and WarehouseLocation ne null and TotalAvailableQuantity ge 1 and TotalAvailableQuantity le 1000";
       string expand = "Attributes($filter=Name eq 'bc category tree')";
       string select = "Sku,WarehouseLocation";
 
