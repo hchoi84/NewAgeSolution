@@ -95,16 +95,6 @@ namespace NewAgeUI.Controllers
       Dictionary<string, int> fromFile = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
       List<JObject> fromCA = await _channelAdvisor.GetForBufferAsync();
       StringBuilder sb = _fileReader.GenerateBufferImportSB(fromFile, fromCA);
-      //Dictionary<string, int> productsToUpdate = await _skuVault.GetProductsToUpdate(activeBufferProducts);
-
-      //StringBuilder sb = new StringBuilder();
-      //foreach (var accountName in _channelAdvisor.GetAcctNames())
-      //{
-      //  sb.Append(_fileReader.ConvertToStoreBufferSB(
-      //    sb.Length == 0,
-      //    productsToUpdate,
-      //    accountName));
-      //}
 
       byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
       string contentType = "text/csv";
@@ -112,7 +102,6 @@ namespace NewAgeUI.Controllers
       FileContentResult file = File(fileContent, contentType, fileName);
 
       return file;
-      //return Json(fromCA);
     }
 
     // DropShipUpdater
