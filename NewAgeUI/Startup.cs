@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NewAgeUI.BackgroundServices;
 using NewAgeUI.Models;
 using SkuVaultLibrary;
 using System;
@@ -53,6 +54,9 @@ namespace NewAgeUI
         options.AccessDeniedPath = new PathString("/AccessDenied");
         options.LoginPath = new PathString("/Account/Login");
       });
+
+      services.AddHostedService<QueuedBackgroundService>();
+      services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
 
       services.AddScoped<IEmployee, SqlEmployee>();
       services.AddScoped<IChannelAdvisor, ChannelAdvisor>();
