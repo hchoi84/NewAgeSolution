@@ -9,7 +9,7 @@ namespace EmailSenderLibrary
 {
   public class EmailSender : IEmailSender
   {
-    public MimeMessage GenerateContent(string toName, string toEmail, string subject, string body)
+    public MimeMessage GenerateContent(string toName, string toEmail, string subject, string body, string fileName = "", byte[] file = null)
     {
       MimeMessage message = new MimeMessage();
 
@@ -21,6 +21,11 @@ namespace EmailSenderLibrary
         HtmlBody = body
       };
 
+      if (!string.IsNullOrWhiteSpace(fileName) && file != null)
+      {
+        bodyBuilder.Attachments.Add(fileName, file, new ContentType("text", "csv"));
+      }
+
       message.To.Add(to);
       message.From.Add(from);
       message.Subject = subject;
@@ -31,25 +36,23 @@ namespace EmailSenderLibrary
 
     public void SendEmail(MimeMessage message)
     {
-      using (SmtpClient client = new SmtpClient())
+      using SmtpClient client = new SmtpClient();
+      if (Secrets.EmailServer == EmailSenderServerEnum.Rackspace)
       {
-        if (Secrets.EmailServer == EmailSenderServerEnum.Rackspace)
-        {
-          client.CheckCertificateRevocation = false;
-          client.SslProtocols = SslProtocols.Tls;
-        }
+        client.CheckCertificateRevocation = false;
+        client.SslProtocols = SslProtocols.Tls;
+      }
 
-        try
-        {
-          client.Connect(Secrets.Host, Secrets.Port, MailKit.Security.SecureSocketOptions.SslOnConnect);
-          client.Authenticate(Secrets.SenderEmail, Secrets.SenderPassword);
-          client.Send(message);
-          client.Disconnect(true);
-        }
-        catch (Exception e)
-        {
-          throw new Exception("There was a problem with either connecting or authenticating with the client", e);
-        }
+      try
+      {
+        client.Connect(Secrets.Host, Secrets.Port, MailKit.Security.SecureSocketOptions.SslOnConnect);
+        client.Authenticate(Secrets.SenderEmail, Secrets.SenderPassword);
+        client.Send(message);
+        client.Disconnect(true);
+      }
+      catch (Exception e)
+      {
+        throw new Exception("There was a problem with either connecting or authenticating with the client", e);
       }
     }
 
