@@ -4,9 +4,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using ChannelAdvisorLibrary;
 using ChannelAdvisorLibrary.Models;
+using EmailSenderLibrary;
 using FileReaderLibrary;
 using FileReaderLibrary.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -15,6 +17,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NewAgeUI.BackgroundServices;
 using NewAgeUI.Models;
 using NewAgeUI.ViewModels;
 using Newtonsoft.Json.Linq;
@@ -22,7 +25,7 @@ using SkuVaultLibrary;
 
 namespace NewAgeUI.Controllers
 {
-  //[AllowAnonymous]
+  [AllowAnonymous]
   public class HomeController : Controller
   {
     private readonly ILogger<HomeController> _logger;
@@ -30,14 +33,18 @@ namespace NewAgeUI.Controllers
     private readonly ISkuVault _skuVault;
     private readonly IFileReader _fileReader;
     private readonly UserManager<Employee> _userManager;
+    private readonly IBackgroundTaskQueue _backgroundTaskQueue;
+    private readonly IEmailSender _emailSender;
 
-    public HomeController(ILogger<HomeController> logger, IChannelAdvisor channelAdvisor, ISkuVault skuVault, IFileReader fileReader, UserManager<Employee> userManager)
+    public HomeController(ILogger<HomeController> logger, IChannelAdvisor channelAdvisor, ISkuVault skuVault, IFileReader fileReader, UserManager<Employee> userManager, IBackgroundTaskQueue backgroundTaskQueue, IEmailSender emailSender)
     {
       _logger = logger;
       _channelAdvisor = channelAdvisor;
       _skuVault = skuVault;
       _fileReader = fileReader;
       _userManager = userManager;
+      _backgroundTaskQueue = backgroundTaskQueue;
+      _emailSender = emailSender;
     }
 
     [HttpGet("")]
@@ -85,6 +92,11 @@ namespace NewAgeUI.Controllers
     [HttpPost("BufferSetter")]
     public async Task<IActionResult> BufferSetter(FileImportViewModel model)
     {
+      if (!ModelState.IsValid)
+      {
+        return View();
+      }
+
       string fileExtension = Path.GetExtension(model.CSVFile.FileName);
       if (fileExtension != ".csv")
       {
@@ -93,15 +105,22 @@ namespace NewAgeUI.Controllers
       }
 
       Dictionary<string, int> fromFile = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
+      await _backgroundTaskQueue.Enqueue(GenerateBufferImportFile, fromFile, model.Email);
+
+      TempData["Message"] = "In progress. Completed file will be emailed to you. This task can take up to 30 minutes";
+      return RedirectToAction("Index");
+    }
+
+    private async ValueTask GenerateBufferImportFile(Dictionary<string, int> file, string email)
+    {
       List<JObject> fromCA = await _channelAdvisor.GetForBufferAsync();
-      StringBuilder sb = _fileReader.GenerateBufferImportSB(fromFile, fromCA);
+      StringBuilder sb = _fileReader.GenerateBufferImportSB(file, fromCA);
 
       byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
-      string contentType = "text/csv";
-      string fileName = $"StoreBuffer-{ DateTime.Now.ToShortDateString() }.csv";
-      FileContentResult file = File(fileContent, contentType, fileName);
 
-      return file;
+      string subject = "Your buffer import file is ready";
+      _emailSender.SendEmail(
+        _emailSender.GenerateContent("Importer", email, "Buffer Import File", subject, "StoreBufferImport.csv", fileContent));
     }
 
     // DropShipUpdater
