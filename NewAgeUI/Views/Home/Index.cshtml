@@ -4,6 +4,12 @@
 
 @{ ViewData["Title"] = "Home Page"; }
 
+@if (TempData["Message"] != null)
+{
+  <div class="text-center text-danger my-5">
+    <h3>@TempData["Message"].ToString()</h3>
+  </div>
+}
 
 <a class="btn btn-primary btn-block" asp-action="NoSalesReport">No Sales Report</a>
 

@@ -6,10 +6,15 @@
 <form enctype="multipart/form-data" asp-action="BufferSetter" method="post">
   <div class="form-group row">
     <div class="col-auto my-auto">
-      <label class="my-auto" asp-for="CSVFile">SkuVault Buffer Export File</label>
+      <label asp-for="CSVFile">SkuVault Buffer Export File</label>
     </div>
     <div class="col-auto my-auto">
-      <input asp-for="CSVFile" class="form-control-file my-auto">
+      <input asp-for="CSVFile" class="form-control-file">
+      <span asp-validation-for="CSVFile" class="text-danger"></span>
+    </div>
+    <div class="col-auto my-auto">
+      <input asp-for="Email" class="form-control" placeholder="Email to send file to">
+      <span asp-validation-for="Email" class="text-danger"></span>
     </div>
     <div class="col-auto my-auto">
       <button class="btn btn-primary my-auto">Submit</button>
@@ -36,10 +41,10 @@
           <li>Navigate to SkuVault => Admin => Exporting => Products Quantity Buffer => Channel Account = CA Golfio => CHECK "Only show SKUs with currently enabled buffers" => Generate</li>
           <li>Import the downloaded file</li>
           <li>Click "Submit"</li>
-          <li>Wait... as long as the windows tab is spinning, it's processing. This process will take at least 6 minutes</li>
-          <li>The result file will be downloaded automatically once it's done</li>
+          <li>Task will run in the background</li>
+          <li>The result file will be emailed</li>
           <li><b>Double check to make sure the file is correct</b></li>
-          <li>Navigate to SkuVault => Admin => Importing => Quantity Buffer Import (per SKU) by products => "Import Quantity Buffers" => Import the file that was downloaded from previous step => "Import"</li>
+          <li>Navigate to SkuVault => Admin => Importing => Quantity Buffer Import (per SKU) by products => "Import Quantity Buffers" => Import the file that was emailed => "Import"</li>
           <li>For information on what the system is doing, please refer to the Explanation section</li>
         </ol>
       </div>
@@ -57,9 +62,12 @@
     <div id="explanation" class="collapse" aria-labelledby="explanationBox" data-parent="#information">
       <div class="card-body">
         <ol>
-          <li>Retrives all products that has quantity in the Store</li>
+          <li>Retrives necessary columns from ChannelAdvisor (SKU, WarehouseLocations)</li>
           <li>Compares the result with currently active buffer quantity</li>
-          <li>Determines if there's no change (won't be included in the file) or it needs to be updated (new buffer quantity or 0)</li>
+          <li>Determines buffer quantity for CA Golfio, CA GB, and BC Golfio</li>
+          <ul>
+            <li>For BC Golfio, except for clubs and bags (determined by the main category), buffer will be set</li>
+          </ul>
         </ol>
       </div>
     </div>
@@ -75,7 +83,7 @@
     </div>
     <div id="objective" class="collapse" aria-labelledby="objectiveBox" data-parent="#information">
       <div class="card-body">
-        <p>The main objective is to prevent store quantity from being sold at other marketplaces (except golfio.com)</p>
+        <p>The main objective is to prevent store quantity from being sold at other marketplaces</p>
       </div>
     </div>
   </div>
