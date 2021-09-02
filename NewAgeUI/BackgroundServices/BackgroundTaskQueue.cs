@@ -20,7 +20,9 @@ namespace NewAgeUI.BackgroundServices
     ValueTask Enqueue(Dictionary<string, int> activeBufferFile, string email);
     ValueTask<Func<Dictionary<string, int>, string, ValueTask>> Dequeue(CancellationToken cancellationToken);
     Dictionary<string, int> GetFile();
+    void RemoveFile();
     string GetEmail();
+    void RemoveEmail();
   }
 
   public class BackgroundTaskQueue : IBackgroundTaskQueue
@@ -46,6 +48,11 @@ namespace NewAgeUI.BackgroundServices
 
     public async ValueTask Enqueue(Dictionary<string, int> activeBufferFile, string email)
     {
+      if (File != null || Email != null)
+      {
+        throw new Exception($"There's already a task in progress for {Email}");
+      }
+
       File = activeBufferFile;
       Email = email;
       await _queue.Writer.WriteAsync(GenerateBufferImportFile);
@@ -81,5 +88,15 @@ namespace NewAgeUI.BackgroundServices
     public Dictionary<string, int> GetFile() => File;
 
     public string GetEmail() => Email;
+
+    public void RemoveFile()
+    {
+      File = null;
+    }
+
+    public void RemoveEmail()
+    {
+      Email = null;
+    }
   }
 }

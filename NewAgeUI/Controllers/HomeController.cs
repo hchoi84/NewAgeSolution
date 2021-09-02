@@ -105,9 +105,17 @@ namespace NewAgeUI.Controllers
       }
 
       Dictionary<string, int> fromFile = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
-      await _backgroundTaskQueue.Enqueue(fromFile, model.Email);
 
-      TempData["Message"] = "In progress. Completed file will be emailed to you. This task can take up to 30 minutes";
+      try
+      {
+        await _backgroundTaskQueue.Enqueue(fromFile, model.Email);
+        TempData["Message"] = "In progress. Completed file will be emailed to you. This task can take up to 30 minutes";
+      }
+      catch (Exception e)
+      {
+        TempData["Message"] = e.Message;
+      }
+
       return RedirectToAction("Index");
     }
 

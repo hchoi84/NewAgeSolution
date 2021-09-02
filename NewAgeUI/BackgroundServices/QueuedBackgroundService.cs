@@ -28,6 +28,8 @@ namespace NewAgeUI.BackgroundServices
         try
         {
           await item(_queue.GetFile(), _queue.GetEmail());
+          _queue.RemoveEmail();
+          _queue.RemoveFile();
           _logger.LogInformation("Process completed");
         }
         catch (Exception ex)
