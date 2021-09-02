@@ -77,18 +77,16 @@ namespace ChannelAdvisorLibrary
       if (!string.IsNullOrWhiteSpace(select)) reqUri += $"&$select={ select }";
 
       List<JObject> jObjects = new List<JObject>();
+      using HttpClient client = new HttpClient();
 
       while (reqUri != null)
       {
         await EstablishConnectionAsync();
         string result;
 
-        using (HttpClient client = new HttpClient())
-        {
-          HttpResponseMessage response = await client.GetAsync(reqUri);
-          HttpContent content = response.Content;
-          result = await content.ReadAsStringAsync();
-        }
+        HttpResponseMessage response = await client.GetAsync(reqUri);
+        HttpContent content = response.Content;
+        result = await content.ReadAsStringAsync();
 
         JObject jObject = JObject.Parse(result);
 
