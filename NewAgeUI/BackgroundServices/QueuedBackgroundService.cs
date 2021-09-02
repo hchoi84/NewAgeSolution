@@ -34,6 +34,8 @@ namespace NewAgeUI.BackgroundServices
         }
         catch (Exception ex)
         {
+          _queue.RemoveEmail();
+          _queue.RemoveFile();
           _logger.LogError(ex, ex.Message);
         }
       }

@@ -86,17 +86,8 @@ namespace NewAgeUI.BackgroundServices
     }
 
     public Dictionary<string, int> GetFile() => File;
-
     public string GetEmail() => Email;
-
-    public void RemoveFile()
-    {
-      File = null;
-    }
-
-    public void RemoveEmail()
-    {
-      Email = null;
-    }
+    public void RemoveFile() => File = null;
+    public void RemoveEmail() => Email = null;
   }
 }
