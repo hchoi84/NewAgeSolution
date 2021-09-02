@@ -40,6 +40,7 @@ namespace NewAgeUI.BackgroundServices
       }
 
       File = activeBufferFile;
+      Email = email;
       await _queue.Writer.WriteAsync(item);
     }
 
