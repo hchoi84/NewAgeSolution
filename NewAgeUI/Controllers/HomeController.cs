@@ -105,28 +105,28 @@ namespace NewAgeUI.Controllers
       }
 
       Dictionary<string, int> fromFile = await _fileReader.RetrieveSkuAndQty(model.CSVFile);
-      await _backgroundTaskQueue.Enqueue(GenerateBufferImportFile, fromFile, model.Email);
+      await _backgroundTaskQueue.Enqueue(fromFile, model.Email);
 
       TempData["Message"] = "In progress. Completed file will be emailed to you. This task can take up to 30 minutes";
       return RedirectToAction("Index");
     }
 
-    private async ValueTask GenerateBufferImportFile(Dictionary<string, int> file, string email)
-    {
-      _logger.LogInformation("Beginning CA fetch");
-      List<JObject> fromCA = await _channelAdvisor.GetForBufferAsync();
-      _logger.LogInformation("Ended CA fetch");
-      _logger.LogInformation("Beginning Import File Generator");
-      StringBuilder sb = _fileReader.GenerateBufferImportSB(file, fromCA);
-      _logger.LogInformation("Ended Import File Generator");
+    //private async ValueTask GenerateBufferImportFile(Dictionary<string, int> file, string email)
+    //{
+    //  _logger.LogInformation("Beginning CA fetch");
+    //  List<JObject> fromCA = await _channelAdvisor.GetForBufferAsync();
+    //  _logger.LogInformation("Ended CA fetch");
+    //  _logger.LogInformation("Beginning Import File Generator");
+    //  StringBuilder sb = _fileReader.GenerateBufferImportSB(file, fromCA);
+    //  _logger.LogInformation("Ended Import File Generator");
 
-      byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
+    //  byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
 
-      _logger.LogInformation($"Sending email to {email}");
-      string subject = "Your buffer import file is ready";
-      _emailSender.SendEmail(
-        _emailSender.GenerateContent("Importer", email, "Buffer Import File", subject, "StoreBufferImport.csv", fileContent));
-    }
+    //  _logger.LogInformation($"Sending email to {email}");
+    //  string subject = "Your buffer import file is ready";
+    //  _emailSender.SendEmail(
+    //    _emailSender.GenerateContent("Importer", email, "Buffer Import File", subject, "StoreBufferImport.csv", fileContent));
+    //}
 
     // DropShipUpdater
     [HttpGet("DropShipUpdater")]
