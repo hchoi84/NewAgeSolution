@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +10,12 @@ namespace NewAgeUI.BackgroundServices
 {
   public class QueuedBackgroundService : BackgroundService
   {
+    private readonly ILogger<QueuedBackgroundService> _logger;
     private readonly IBackgroundTaskQueue _queue;
 
-    public QueuedBackgroundService(IBackgroundTaskQueue queue)
+    public QueuedBackgroundService(ILogger<QueuedBackgroundService> logger, IBackgroundTaskQueue queue)
     {
+      _logger = logger;
       _queue = queue;
     }
 
@@ -25,10 +28,11 @@ namespace NewAgeUI.BackgroundServices
         try
         {
           await item(_queue.GetFile(), _queue.GetEmail());
+          _logger.LogInformation("Process completed");
         }
         catch (Exception ex)
         {
-          Console.WriteLine(ex.Message);
+          _logger.LogError(ex.Message);
         }
       }
     }

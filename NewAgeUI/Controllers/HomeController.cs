@@ -113,11 +113,16 @@ namespace NewAgeUI.Controllers
 
     private async ValueTask GenerateBufferImportFile(Dictionary<string, int> file, string email)
     {
+      _logger.LogInformation("Beginning CA fetch");
       List<JObject> fromCA = await _channelAdvisor.GetForBufferAsync();
+      _logger.LogInformation("Ended CA fetch");
+      _logger.LogInformation("Beginning Import File Generator");
       StringBuilder sb = _fileReader.GenerateBufferImportSB(file, fromCA);
+      _logger.LogInformation("Ended Import File Generator");
 
       byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
 
+      _logger.LogInformation($"Sending email to {email}");
       string subject = "Your buffer import file is ready";
       _emailSender.SendEmail(
         _emailSender.GenerateContent("Importer", email, "Buffer Import File", subject, "StoreBufferImport.csv", fileContent));
