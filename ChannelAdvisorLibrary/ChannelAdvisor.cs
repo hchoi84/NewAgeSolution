@@ -78,26 +78,34 @@ namespace ChannelAdvisorLibrary
 
       List<JObject> jObjects = new List<JObject>();
       using HttpClient client = new HttpClient();
+      HttpResponseMessage response;
+      HttpContent content;
+      JObject jObject;
+      string result;
 
       while (reqUri != null)
       {
         await EstablishConnectionAsync();
-        string result;
 
-        HttpResponseMessage response = await client.GetAsync(reqUri);
-        HttpContent content = response.Content;
-        result = await content.ReadAsStringAsync();
-
-        JObject jObject = JObject.Parse(result);
-
-        if (jObject["error"] != null)
+        try
         {
-          throw new Exception(jObject["error"]["message"].ToString());
+          response = await client.GetAsync(reqUri);
+          content = response.Content;
+          result = await content.ReadAsStringAsync();
+          jObject = JObject.Parse(result);
+          jObjects.AddRange(jObject["value"].ToObject<List<JObject>>());
+          reqUri = (string)jObject[_odataNextLink];
+        }
+        catch (Exception ex)
+        {
+          throw new Exception(ex.Message, ex);
         }
 
-        reqUri = (string)jObject[_odataNextLink];
 
-        foreach (JObject item in jObject["value"]) jObjects.Add(item);
+        //if (jObject["error"] != null)
+        //{
+        //  throw new Exception(jObject["error"]["message"].ToString());
+        //}
       }
 
       return jObjects;
