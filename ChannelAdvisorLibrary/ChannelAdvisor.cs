@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ChannelAdvisorLibrary
@@ -77,11 +78,11 @@ namespace ChannelAdvisorLibrary
       if (!string.IsNullOrWhiteSpace(select)) reqUri += $"&$select={ select }";
 
       List<JObject> jObjects = new List<JObject>();
-      using HttpClient client = new HttpClient();
-      HttpResponseMessage response;
-      HttpContent content;
+      using HttpClient client = new HttpClient()
+      {
+        Timeout = TimeSpan.FromMinutes(10)
+      };
       JObject jObject;
-      string result;
 
       while (reqUri != null)
       {
@@ -89,9 +90,8 @@ namespace ChannelAdvisorLibrary
 
         try
         {
-          response = await client.GetAsync(reqUri);
-          content = response.Content;
-          result = await content.ReadAsStringAsync();
+          HttpResponseMessage response = await client.GetAsync(reqUri);
+          string result = await response.Content.ReadAsStringAsync();
           jObject = JObject.Parse(result);
           jObjects.AddRange(jObject["value"].ToObject<List<JObject>>());
           reqUri = (string)jObject[_odataNextLink];
@@ -100,12 +100,6 @@ namespace ChannelAdvisorLibrary
         {
           throw new Exception(ex.Message, ex);
         }
-
-
-        //if (jObject["error"] != null)
-        //{
-        //  throw new Exception(jObject["error"]["message"].ToString());
-        //}
       }
 
       return jObjects;
@@ -334,7 +328,7 @@ namespace ChannelAdvisorLibrary
           string mainCategory = products[i]["Attributes"][0]["Value"].ToString().Split("/")[0];
           filtered.Add(new JObject(
             new JProperty("SKU", products[i]["Sku"]),
-            new JProperty("Qty", int.Parse(storeLoc.Substring(6, storeLoc.IndexOf(")") - 6))),
+            new JProperty("Qty", int.Parse(storeLoc[6..storeLoc.IndexOf(")")])),
             new JProperty("isForWeb", mainCategoriesForWeb.Contains(mainCategory))
             ));
         }
