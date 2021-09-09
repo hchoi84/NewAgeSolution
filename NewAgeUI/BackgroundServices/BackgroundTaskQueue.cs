@@ -62,14 +62,13 @@ namespace NewAgeUI.BackgroundServices
     {
       using var scope = _serviceProvider.CreateScope();
       var _channelAdvisor = scope.ServiceProvider.GetRequiredService<IChannelAdvisor>();
-      _logger.LogInformation("Beginning CA fetch");
+      _logger.LogInformation("************************************");
+      _logger.LogInformation($"Beginning CA fetch {DateTime.UtcNow}");
       List<JObject> fromCA = await _channelAdvisor.GetForBufferAsync();
-      _logger.LogInformation("Ended CA fetch");
+      _logger.LogInformation($"Ended CA fetch {DateTime.UtcNow}");
 
-      _logger.LogInformation("Beginning Import File Generator");
       var _fileReader = scope.ServiceProvider.GetRequiredService<IFileReader>();
       StringBuilder sb = _fileReader.GenerateBufferImportSB(file, fromCA);
-      _logger.LogInformation("Ended Import File Generator");
 
       byte[] fileContent = new UTF8Encoding().GetBytes(sb.ToString());
 

@@ -30,7 +30,7 @@ namespace NewAgeUI.BackgroundServices
           await item(_queue.GetFile(), _queue.GetEmail());
           _queue.RemoveEmail();
           _queue.RemoveFile();
-          _logger.LogInformation("Process completed");
+          _logger.LogInformation($"Process completed {DateTime.UtcNow}");
         }
         catch (Exception ex)
         {
