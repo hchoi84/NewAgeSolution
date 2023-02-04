@@ -318,6 +318,8 @@ namespace ChannelAdvisorLibrary
       {
         List<string> locations = products[i]["WarehouseLocation"].ToString().Split(",").ToList();
         string storeLoc = locations.FirstOrDefault(x => x.Contains("STORE"));
+        var qtyStartIndex = storeLoc.IndexOf("(") + 1;
+        var qtyEndIndex = storeLoc.IndexOf(")");
         if (storeLoc == null)
         {
           continue;
@@ -328,7 +330,7 @@ namespace ChannelAdvisorLibrary
           string mainCategory = products[i]["Attributes"][0]["Value"].ToString().Split("/")[0];
           filtered.Add(new JObject(
             new JProperty("SKU", products[i]["Sku"]),
-            new JProperty("Qty", int.Parse(storeLoc[6..storeLoc.IndexOf(")")])),
+            new JProperty("Qty", int.Parse(storeLoc[qtyStartIndex..qtyEndIndex])),
             new JProperty("isForWeb", mainCategoriesForWeb.Contains(mainCategory))
             ));
         }
