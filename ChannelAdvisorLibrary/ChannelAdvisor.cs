@@ -318,14 +318,14 @@ namespace ChannelAdvisorLibrary
       {
         List<string> locations = products[i]["WarehouseLocation"].ToString().Split(",").ToList();
         string storeLoc = locations.FirstOrDefault(x => x.Contains("STORE"));
-        var qtyStartIndex = storeLoc.IndexOf("(") + 1;
-        var qtyEndIndex = storeLoc.IndexOf(")");
         if (storeLoc == null)
         {
           continue;
         }
         else
         {
+          var qtyStartIndex = storeLoc.IndexOf("(") + 1;
+          var qtyEndIndex = storeLoc.IndexOf(")");
           string[] mainCategoriesForWeb = { "Bags & Carts", "Bags and Carts", "Golf Clubs" };
           string mainCategory = products[i]["Attributes"][0]["Value"].ToString().Split("/")[0];
           filtered.Add(new JObject(
